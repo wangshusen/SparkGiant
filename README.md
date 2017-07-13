@@ -1,5 +1,5 @@
-# SparkKernelKMeans
-Spark implementation of kernel k-means with Nystrom approximation
+# SparkGiant
+Spark implementation of GIANT
 
 ## Usage
 
