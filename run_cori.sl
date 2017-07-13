@@ -16,6 +16,7 @@ NUM_SPLITS="16"
 
 module load python/3.5-anaconda
 module load spark
+ulimit -s unlimited
 start-all.sh
 
 spark-submit \
