@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH -p regular
-#SBATCH -N 8
+#SBATCH -N 4
 #SBATCH -C haswell
 #SBATCH -t 00:10:00
-#SBATCH -J wss_kernel_kmeans
+#SBATCH -J wss_giant
 #SBATCH -L SCRATCH
-#SBATCH -e mysparkjob_%j.err
-#SBATCH -o mysparkjob_%j.out
+#SBATCH -e giant_job_%j.err
+#SBATCH -o giant_job_%j.out
 
-export PROJ_HOME="$SCRATCH/SparkGiant"
+PROJ_HOME="$SCRATCH/SparkGiant"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 DATA_FILE="$PROJ_HOME/data/YearPredictionMSD"
 
