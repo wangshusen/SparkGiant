@@ -34,11 +34,11 @@ object Quadratic {
         // Launch Spark
         val spark = (SparkSession
                       .builder()
-                      .appName("Spark SQL basic example")
+                      .appName("Giant for Ridge Regression")
                       .config("spark.some.config.option", "some-value")
                       .getOrCreate())
         val sc = spark.sparkContext
-        sc.setLogLevel("ERROR")
+        //sc.setLogLevel("ERROR")
         var t1 = System.nanoTime()
         println("Time cost of starting Spark:  " + ((t1-t0)*1e-9).toString + "  seconds.")
         
@@ -75,7 +75,7 @@ object Quadratic {
         println(" ")
         
         
-        var giant: GiantExact.Driver = new GiantExact.Driver(sc, data, true)
+        var giant: GiantExact.Driver = new GiantExact.Driver(sc, data, false)
         val results = giant.train(gamma, maxiter)
         
         println("\n ")

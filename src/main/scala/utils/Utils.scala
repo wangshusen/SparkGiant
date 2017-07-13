@@ -42,8 +42,8 @@ object Utils {
         val normalizedLabelVectorRdd: RDD[(Double, Array[Double])] = labelVectorRdd
             .map(pair => (pair._1-meanLabelBc.value, (pair._2 zip maxFeaturesBc.value).map(a => a._1 / a._2)))
         
-        println(maxFeatures.mkString(","))
-        println(meanLabel)
+        //println(maxFeatures.mkString(","))
+        //println(meanLabel)
         
         normalizedLabelVectorRdd
     }
