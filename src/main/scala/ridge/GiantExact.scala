@@ -181,7 +181,7 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
 
     // specific to training
     var gamma: Double = 0.0
-    var invH: DenseMatrix[Double] = DenseMatrix.zeros[Double](1, 1)
+    var invH: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, d)
     
     println("Executor: initialized!")
 
@@ -225,16 +225,6 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
         val objVal = (trainError + this.s * this.gamma * wNorm) / 2
         (g.toArray, trainError, objVal)
     }
-    /*
-    def grad(w: DenseMatrix[Double]): (DenseMatrix[Double], Double, Double) = {
-        val res = this.x.t * w - this.y
-        val g = this.x * res + (this.s * this.gamma) * w
-        // the training error and objective value are by-products
-        val trainError = sum(res :* res)
-        val wNorm = sum(w :* w)
-        val objVal = (trainError + this.s * this.gamma * wNorm) / 2
-        (g, trainError, objVal)
-    }*/
 
     
     /**
@@ -244,9 +234,10 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     def invertHessian(): Unit = {
         var sig2: DenseVector[Double] = (this.sig :* this.sig) * (1.0/this.s) + this.gamma
         sig2 := 1.0 / sig2
-        this.invH = this.v.copy
-        //this.invH(*, ::) :*= sig2
-        this.invH := this.v(*, ::) :* sig2
+        for (j <- 0 until d) {
+            this.invH(::, j) := this.v(::, j) :* sig2(j)
+        }
+        //this.invH := this.v(*, ::) :* sig2
         this.invH := this.invH * this.v.t
     }
     
