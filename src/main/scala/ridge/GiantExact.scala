@@ -221,8 +221,11 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
      * using the local data.
      */
     def invertHessian(): Unit = {
-        val sig2: DenseVector[Double] = (this.sig :* this.sig) * (1.0/this.s) + this.gamma
-        this.invH = (this.v(*, ::) :/ sig2) * this.v.t
+        var sig2: DenseVector[Double] = (this.sig :* this.sig) * (1.0/this.s) + this.gamma
+        sig2 = sig2.map(1.0 / _)
+        this.invH = this.v.copy
+        this.invH(*, ::) :*= sig2
+        this.invH := this.invH * this.v.t
     }
     
     /**
