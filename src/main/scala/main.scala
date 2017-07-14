@@ -30,8 +30,8 @@ object Quadratic {
         val gamma: Double = args(2).toDouble
         val maxiter: Int = args(3).toInt
         
-        var t0 = System.nanoTime()
         // Launch Spark
+        var t0 = System.nanoTime()
         val spark = (SparkSession
                       .builder()
                       .appName("Giant for Ridge Regression")
@@ -59,11 +59,7 @@ object Quadratic {
         t1 = System.nanoTime()
         println("n = " + n.toString)
         println("Time cost of data normalization:  " + ((t1-t0)*1e-9).toString + "  seconds.")
-        println(" ")
-        
-        
-        //data.take(10).map(pair => pair._1.toString + ", " + pair._2.mkString(",")).foreach(println)
-        
+        println(" ")        
         
         println("####################################")
         println("spark.conf.getAll:")
@@ -75,7 +71,8 @@ object Quadratic {
         println(" ")
         
         
-        var giant: GiantExact.Driver = new GiantExact.Driver(sc, data, false)
+        // Use GIANT to solve ridge regression
+        var giant: GiantExact.Driver = new GiantExact.Driver(sc, data, true)
         val results = giant.train(gamma, maxiter)
         
         println("\n ")

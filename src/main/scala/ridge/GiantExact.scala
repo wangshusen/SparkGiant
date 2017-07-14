@@ -34,14 +34,14 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
     var objVal: Double = 0.0
     
     // for line search
-    val stepSizes: Array[Double] = (0 until 10).toArray.map(1.0 / math.pow(4, _))
-    val numStepSizes: Int = stepSizes.length
+    val numStepSizes: Int = 10
+    val stepSizes: Array[Double] = (0 until numStepSizes).toArray.map(1.0 / math.pow(4, _))
     val stepSizesBc = sc.broadcast(stepSizes)
     
     // initialize executors
     val t0: Double = System.nanoTime()
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
-    println("Executors are initialized using the input data!")
+    println("Driver: executors are initialized using the input data!")
     
     /**
      * Train a ridge regression model using GIANT with the local problems exactly solved.
@@ -57,11 +57,11 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
         val rddTrain: RDD[Executor] = this.rdd
                                     .map(exe => {exe.setGamma(gamma); exe.invertHessian; exe})
                                     .persist()
-        println("Executors are setup for training! Gamma = " + gamma.toString)
+        println("Driver: executors are setup for training! gamma = " + gamma.toString)
         
         // initialize w by model averaging
         this.w := rddTrain.map(_.solve()).reduce((a, b) => a+b) * (1.0 / this.m)
-        println("Model averaging is done!")
+        println("Driver: model averaging is done!")
         
         // record the objectives of each iteration
         val trainErrorArray: Array[Double] = new Array[Double](maxIter)
@@ -101,7 +101,7 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
         // broadcast p
         val pBc: Broadcast[DenseMatrix[Double]] = this.sc.broadcast(pFull)
         
-        // take Newton step
+        // take approximate Newton step
         if (isSearch) { // search for a step size that leads to sufficient decrease
             val pg: Double = -0.1 * sum(pFull :* gFull)
             var eta: Double = this.lineSearch(rddTrain, pg, wBc, pBc)
@@ -125,15 +125,15 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
         var eta: Double = 0.0
         
         // get the objective values f(w - eta*p) for all eta in the candidate list
-        val objValArray: Array[Double] = rddTrain
+        val objVals: Array[Double] = rddTrain
                             .map(_.objFunVal(wBc.value, pBc.value))
                             .reduce((a,b) => (a zip b).map(pair => pair._1+pair._2))
                             .map(_ / this.n.toDouble)
         
         // backtracking line search (Armijo rule)
-        for (j <- 0 until numStepSizes) {
-            eta = stepSizes(j)
-            var objValNew = objValArray(j)
+        for (j <- 0 until this.numStepSizes) {
+            eta = this.stepSizes(j)
+            var objValNew = objVals(j)
             // sufficient decrease in the objective value
             if (objValNew < this.objVal + pg * eta) { 
                 return eta
@@ -164,15 +164,15 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     
     // for line search
     // make sure stepSizes is consistent with the one defined in the driver
-    val stepSizes: Array[Double] = (0 until 10).toArray.map(1.0 / math.pow(4, _))
-    val numStepSizes: Int = stepSizes.length
-    val objValArray: Array[Double] = Array[Double](numStepSizes)
+    val numStepSizes: Int = 10
+    val stepSizes: Array[Double] = (0 until numStepSizes).toArray.map(1.0 / math.pow(4, _))
+    val objValArray: Array[Double] = new Array[Double](this.numStepSizes)
 
     // specific to training
     var gamma: Double = 0.0
     var invH: DenseMatrix[Double] = DenseMatrix.zeros[Double](1, 1)
     
-    println("Executor is initialized!")
+    println("Executor: initialized!")
 
     def setGamma(gamma0: Double): Unit = {
         this.gamma = gamma0
@@ -190,14 +190,13 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     def objFunVal(w: DenseMatrix[Double], p: DenseMatrix[Double]): Array[Double] = {
         var wTmp: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
         var res: DenseMatrix[Double] = DenseMatrix.zeros[Double](s, 1)
-        
-        for (j <- 0 until this.numStepSizes) {
-            wTmp := w - this.stepSizes(j) * p
+        for (idx <- 0 until this.numStepSizes) {
+            wTmp := w - this.stepSizes(idx) * p
             res := this.x.t * wTmp - this.y
-            objValArray(j) = (sum(res :* res) + this.s * this.gamma * sum(wTmp :* wTmp)) / 2.0
+            this.objValArray(idx) = (sum(res :* res) + this.s * this.gamma * sum(wTmp :* wTmp)) / 2.0
         }
         
-        objValArray
+        this.objValArray
     }
 
     /**
