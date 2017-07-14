@@ -27,13 +27,14 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
     val m: Long = data.getNumPartitions
     
     // variables
-    var w: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
-    var gFull: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
-    var pFull: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
+    var w: Array[Double] = new Array[Double](d)
+    var g: Array[Double] = new Array[Double](d)
+    var p: Array[Double] = new Array[Double](d)
     var trainError: Double = 0.0
     var objVal: Double = 0.0
     
     // for line search
+    var eta: Double = 0.0
     val numStepSizes: Int = 10
     val stepSizes: Array[Double] = (0 until numStepSizes).toArray.map(1.0 / math.pow(4, _))
     val stepSizesBc = sc.broadcast(stepSizes)
@@ -61,10 +62,9 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
         println("Driver: executors are setup for training! gamma = " + gamma.toString)
         
         // initialize w by model averaging
-        var wArray: Array[Double] = rddTrain.map(_.solve())
+        this.w = rddTrain.map(_.solve())
                             .reduce((a,b) => (a,b).zipped.map(_ + _))
                             .map(_ / this.n.toDouble)
-        this.w = new DenseMatrix(this.d, 1, wArray)
         println("Driver: model averaging is done!")
         
         // record the objectives of each iteration
@@ -85,41 +85,38 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
         (trainErrorArray, objValArray, timeArray.map(time => time*1.0E-9))
     }
 
-    // take one approximate Newton step
+    // Take one approximate Newton step.
     def update(rddTrain: RDD[Executor]): Unit ={
         // broadcast w
-        val wBc: Broadcast[DenseMatrix[Double]] = this.sc.broadcast(this.w)
+        val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
         
         // compute full gradient
-        //var tmp = rddTrain.map(exe => exe.grad(wBc.value)).reduce((a, b) => (a._1+b._1, a._2+b._2, a._3+b._3))
-        //this.gFull := tmp._1 * (1.0 / this.n)
         var tmp = rddTrain.map(exe => exe.grad(wBc.value))
                     .reduce((a, b) => ((a._1,b._1).zipped.map(_ + _), a._2+b._2, a._3+b._3))
-        this.gFull = new DenseMatrix(this.d, 1, tmp._1.map(_ / this.n.toDouble))
+        this.g = tmp._1.map(_ / this.n.toDouble)
+        val gBc: Broadcast[Array[Double]] = this.sc.broadcast(this.g)
+        
+        // update the training error and objective value
         this.trainError = tmp._2 * (1.0 / this.n)
         this.objVal = tmp._3 * (1.0 / this.n)
-        
-        // broadcast g
-        val gBc: Broadcast[DenseMatrix[Double]] = this.sc.broadcast(gFull)
 
         // compute the averaged Newton direction
-        val pArray: Array[Double] = rddTrain.map(exe => exe.newton(gBc.value))
-                                        .reduce((a,b) => (a,b).zipped.map(_ + _)) 
-                                        .map(_ / this.n.toDouble)
-        pFull = new DenseMatrix(this.d, 1, pArray)
+        this.p = rddTrain.map(exe => exe.newton(gBc.value.toArray))
+                        .reduce((a,b) => (a,b).zipped.map(_ + _)) 
+                        .map(_ / this.n.toDouble)
+        val pBc: Broadcast[Array[Double]] = this.sc.broadcast(this.p)
         
-        // broadcast p
-        val pBc: Broadcast[DenseMatrix[Double]] = this.sc.broadcast(pFull)
+        // search for a step size that leads to sufficient decrease
+        if (isSearch) { 
+            val pg: Double = (this.p, this.g).zipped.map(_ * _).reduce(_ + _)
+            eta = this.lineSearch(rddTrain, -0.1 * pg, wBc, pBc)
+        }
+        else {
+            eta = 1.0
+        }
         
         // take approximate Newton step
-        if (isSearch) { // search for a step size that leads to sufficient decrease
-            val pg: Double = -0.1 * sum(pFull :* gFull)
-            var eta: Double = this.lineSearch(rddTrain, pg, wBc, pBc)
-            this.w -= eta * pFull
-        }
-        else { // use step size 1.0
-            this.w -= pFull
-        }
+        this.w = (this.w, this.p).zipped.map((a, b) => a - eta*b)
     }
     
     /** 
@@ -131,14 +128,13 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
      * @param pBc the broadcast of p
      * @return eta the best step size
      */
-    def lineSearch(rddTrain: RDD[Executor], pg: Double, wBc: Broadcast[DenseMatrix[Double]], pBc: Broadcast[DenseMatrix[Double]]): Double = {
+    def lineSearch(rddTrain: RDD[Executor], pg: Double, wBc: Broadcast[Array[Double]], pBc: Broadcast[Array[Double]]): Double = {
         var eta: Double = 0.0
         
         // get the objective values f(w - eta*p) for all eta in the candidate list
         val objVals: Array[Double] = rddTrain
                             .map(_.objFunVal(wBc.value, pBc.value))
                             .reduce((a,b) => (a,b).zipped.map(_ + _))
-                            //.reduce((a,b) => (a zip b).map(pair => pair._1+pair._2))
                             .map(_ / this.n.toDouble)
         
         // backtracking line search (Armijo rule)
@@ -193,18 +189,23 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
      * Compute the local objective function value
      *      0.5*||X (w - eta*p) - y||_2^2 + 0.5*s*gamma*||(w - eta*p)||_2^2
      * for all eta in the candidate set.
+     * This function is for line search.
      *
      * @param w current solution
      * @param p search direction
      * @return the local objective values as an array
      */
-    def objFunVal(w: DenseMatrix[Double], p: DenseMatrix[Double]): Array[Double] = {
+    def objFunVal(wArray: Array[Double], pArray: Array[Double]): Array[Double] = {
+        val w: DenseMatrix[Double] = new DenseMatrix(this.d, 1, wArray)
+        val p: DenseMatrix[Double] = new DenseMatrix(this.d, 1, pArray)
         var wTmp: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
         var res: DenseMatrix[Double] = DenseMatrix.zeros[Double](s, 1)
         for (idx <- 0 until this.numStepSizes) {
             wTmp := w - this.stepSizes(idx) * p
             res := this.x.t * wTmp - this.y
-            this.objValArray(idx) = (sum(res :* res) + this.s * this.gamma * sum(wTmp :* wTmp)) / 2.0
+            var trainError: Double = res.toArray.map(a => a*a).reduce(_ + _)
+            var wNorm: Double = wTmp.toArray.map(a => a*a).reduce(_ + _)
+            this.objValArray(idx) = (trainError + this.s * this.gamma * wNorm) / 2.0
         }
         
         this.objValArray
@@ -216,13 +217,16 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
      * @return trainError = ||X w - y||_2^2 , the local training error
      * @return objVal = 0.5*||X w - y||_2^2 + 0.5*s*gamma*||w||_2^2 , the local objective function value
      */
-    def grad(w: DenseMatrix[Double]): (Array[Double], Double, Double) = {
-        val res = this.x.t * w - this.y
-        val g = this.x * res + (this.s * this.gamma) * w
-        // the training error and objective value are by-products
-        val trainError = sum(res :* res)
-        val wNorm = sum(w :* w)
-        val objVal = (trainError + this.s * this.gamma * wNorm) / 2
+    def grad(wArray: Array[Double]): (Array[Double], Double, Double) = {
+        val w: DenseMatrix[Double] = new DenseMatrix(this.d, 1, wArray)
+        // gradient
+        val res: DenseMatrix[Double] = this.x.t * w - this.y
+        val g: DenseMatrix[Double] = this.x * res + (this.s * this.gamma) * w
+        // training error
+        val trainError: Double = res.toArray.map(a => a*a).reduce(_ + _)
+        // objective function value
+        val wNorm: Double = w.toArray.map(a => a*a).reduce(_ + _)
+        val objVal: Double = (trainError + this.s * this.gamma * wNorm) / 2
         (g.toArray, trainError, objVal)
     }
 
@@ -237,7 +241,6 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
         for (j <- 0 until d) {
             this.invH(::, j) := this.v(::, j) :* sig2(j)
         }
-        //this.invH := this.v(*, ::) :* sig2
         this.invH := this.invH * this.v.t
     }
     
@@ -256,11 +259,12 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     /**
      * Compute the local Newton direction
      *
-     * @param gFull the full gradient
+     * @param gArray the full gradient
      * @return the local Newton direction scaled by s
      */
-    def newton(gFull: DenseMatrix[Double]): Array[Double] = {
-        val p: DenseMatrix[Double] = (this.invH * gFull) * this.s.toDouble
+    def newton(gArray: Array[Double]): Array[Double] = {
+        val g: DenseMatrix[Double] = new DenseMatrix(this.d, 1, gArray)
+        val p: DenseMatrix[Double] = (this.invH * g) * this.s.toDouble
         p.toArray
     }
 }
