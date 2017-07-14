@@ -57,6 +57,7 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
         val rddTrain: RDD[Executor] = this.rdd
                                     .map(exe => {exe.setGamma(gamma); exe.invertHessian; exe})
                                     .persist()
+        println("count = " + rddTrain.count.toString)
         println("Driver: executors are setup for training! gamma = " + gamma.toString)
         
         // initialize w by model averaging
@@ -90,8 +91,11 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
         val wBc: Broadcast[DenseMatrix[Double]] = this.sc.broadcast(this.w)
         
         // compute full gradient
-        var tmp = rddTrain.map(exe => exe.grad(wBc.value)).reduce((a, b) => (a._1+b._1, a._2+b._2, a._3+b._3))
-        this.gFull := tmp._1 * (1.0 / this.n)
+        //var tmp = rddTrain.map(exe => exe.grad(wBc.value)).reduce((a, b) => (a._1+b._1, a._2+b._2, a._3+b._3))
+        //this.gFull := tmp._1 * (1.0 / this.n)
+        var tmp = rddTrain.map(exe => exe.grad(wBc.value))
+                    .reduce((a, b) => ((a._1,b._1).zipped.map(_ + _), a._2+b._2, a._3+b._3))
+        this.gFull = new DenseMatrix(this.d, 1, tmp._1.map(_ / this.n.toDouble))
         this.trainError = tmp._2 * (1.0 / this.n)
         this.objVal = tmp._3 * (1.0 / this.n)
         
@@ -212,6 +216,16 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
      * @return trainError = ||X w - y||_2^2 , the local training error
      * @return objVal = 0.5*||X w - y||_2^2 + 0.5*s*gamma*||w||_2^2 , the local objective function value
      */
+    def grad(w: DenseMatrix[Double]): (Array[Double], Double, Double) = {
+        val res = this.x.t * w - this.y
+        val g = this.x * res + (this.s * this.gamma) * w
+        // the training error and objective value are by-products
+        val trainError = sum(res :* res)
+        val wNorm = sum(w :* w)
+        val objVal = (trainError + this.s * this.gamma * wNorm) / 2
+        (g.toArray, trainError, objVal)
+    }
+    /*
     def grad(w: DenseMatrix[Double]): (DenseMatrix[Double], Double, Double) = {
         val res = this.x.t * w - this.y
         val g = this.x * res + (this.s * this.gamma) * w
@@ -220,7 +234,7 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
         val wNorm = sum(w :* w)
         val objVal = (trainError + this.s * this.gamma * wNorm) / 2
         (g, trainError, objVal)
-    }
+    }*/
 
     
     /**
@@ -229,7 +243,8 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
      */
     def invertHessian(): Unit = {
         var sig2: DenseVector[Double] = (this.sig :* this.sig) * (1.0/this.s) + this.gamma
-        sig2 = sig2.map(1.0 / _)
+        //sig2 = sig2.map(1.0 / _)
+        sig2 := 1.0 / sig2
         this.invH = this.v.copy
         this.invH(*, ::) :*= sig2
         this.invH := this.invH * this.v.t
