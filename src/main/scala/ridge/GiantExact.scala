@@ -42,7 +42,7 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
     val t0: Double = System.nanoTime()
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
     println("Driver: executors are initialized using the input data!")
-    
+
     /**
      * Train a ridge regression model using GIANT with the local problems exactly solved.
      *
@@ -60,9 +60,10 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
         println("Driver: executors are setup for training! gamma = " + gamma.toString)
         
         // initialize w by model averaging
-        this.w := rddTrain.map(_.solve())
-                        .reduce((a, b) => a+b)
-        this.w *= (1.0 / this.m)
+        var wArray: Array[Double] = rddTrain.map(_.solve())
+                            .reduce((a,b) => (a,b).zipped.map(_ + _))
+                            .map(_ / this.n.toDouble)
+        this.w = new DenseMatrix(this.d, 1, wArray)
         println("Driver: model averaging is done!")
         
         // record the objectives of each iteration
@@ -98,7 +99,10 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
         val gBc: Broadcast[DenseMatrix[Double]] = this.sc.broadcast(gFull)
 
         // compute the averaged Newton direction
-        pFull := rddTrain.map(exe => exe.newton(gBc.value)).reduce((a, b) => a+b) * (1.0 / this.n)
+        val pArray: Array[Double] = rddTrain.map(exe => exe.newton(gBc.value))
+                                        .reduce((a,b) => (a,b).zipped.map(_ + _)) 
+                                        .map(_ / this.n.toDouble)
+        pFull = new DenseMatrix(this.d, 1, pArray)
         
         // broadcast p
         val pBc: Broadcast[DenseMatrix[Double]] = this.sc.broadcast(pFull)
@@ -129,7 +133,8 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
         // get the objective values f(w - eta*p) for all eta in the candidate list
         val objVals: Array[Double] = rddTrain
                             .map(_.objFunVal(wBc.value, pBc.value))
-                            .reduce((a,b) => (a zip b).map(pair => pair._1+pair._2))
+                            .reduce((a,b) => (a,b).zipped.map(_ + _))
+                            //.reduce((a,b) => (a zip b).map(pair => pair._1+pair._2))
                             .map(_ / this.n.toDouble)
         
         // backtracking line search (Armijo rule)
@@ -237,8 +242,9 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
      *
      * @return w solution to the local problem
      */
-    def solve(): DenseMatrix[Double] = {
-        (this.invH * (this.x * this.y)) * (1.0 / s)
+    def solve(): Array[Double] = {
+        val w: DenseMatrix[Double] = this.invH * (this.x * this.y)
+        w.toArray
     }
 
     /**
@@ -247,8 +253,8 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
      * @param gFull the full gradient
      * @return the local Newton direction scaled by s
      */
-    def newton(gFull: DenseMatrix[Double]): DenseMatrix[Double] = {
-        (this.invH * gFull) * this.s.toDouble
+    def newton(gFull: DenseMatrix[Double]): Array[Double] = {
+        val p: DenseMatrix[Double] = (this.invH * gFull) * this.s.toDouble
+        p.toArray
     }
-
 }
