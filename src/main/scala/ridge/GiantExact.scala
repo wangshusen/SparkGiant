@@ -243,10 +243,10 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
      */
     def invertHessian(): Unit = {
         var sig2: DenseVector[Double] = (this.sig :* this.sig) * (1.0/this.s) + this.gamma
-        //sig2 = sig2.map(1.0 / _)
         sig2 := 1.0 / sig2
         this.invH = this.v.copy
-        this.invH(*, ::) :*= sig2
+        //this.invH(*, ::) :*= sig2
+        this.invH := this.v(*, ::) :* sig2
         this.invH := this.invH * this.v.t
     }
     
