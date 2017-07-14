@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -p regular
-#SBATCH -N 4
+#SBATCH -N 2
 #SBATCH -C haswell
-#SBATCH -t 00:10:00
+#SBATCH -t 00:5:00
 #SBATCH -J wss_giant
 #SBATCH -L SCRATCH
 #SBATCH -e giant_job_%j.err
@@ -12,7 +12,7 @@ PROJ_HOME="$SCRATCH/SparkGiant"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 DATA_FILE="$PROJ_HOME/data/YearPredictionMSD"
 
-NUM_SPLITS="16"
+NUM_SPLITS="8"
 
 module load python/3.5-anaconda
 module load spark
