@@ -89,12 +89,14 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
     def update(rddTrain: RDD[Executor]): Unit ={
         // broadcast w
         val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
+        //this.wBc = this.sc.broadcast(this.w)
         
         // compute full gradient
-        var tmp = rddTrain.map(exe => exe.grad(wBc.value))
+        var tmp: (Array[Double], Double, Double) = rddTrain.map(exe => exe.grad(wBc.value))
                     .reduce((a, b) => ((a._1,b._1).zipped.map(_ + _), a._2+b._2, a._3+b._3))
         this.g = tmp._1.map(_ / this.n.toDouble)
         val gBc: Broadcast[Array[Double]] = this.sc.broadcast(this.g)
+        //this.gBc = this.sc.broadcast(this.g)
         
         // update the training error and objective value
         this.trainError = tmp._2 * (1.0 / this.n)
@@ -105,10 +107,11 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
                         .reduce((a,b) => (a,b).zipped.map(_ + _)) 
                         .map(_ / this.n.toDouble)
         val pBc: Broadcast[Array[Double]] = this.sc.broadcast(this.p)
+        //this.pBc = this.sc.broadcast(this.p)
         
         // search for a step size that leads to sufficient decrease
         if (isSearch) { 
-            val pg: Double = (this.p, this.g).zipped.map(_ * _).reduce(_ + _)
+            val pg: Double = (this.p, this.g).zipped.map(_ * _).sum
             this.eta = this.lineSearch(rddTrain, -0.1 * pg, wBc, pBc)
         }
         else {
@@ -203,8 +206,8 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
         for (idx <- 0 until this.numStepSizes) {
             wTmp := w - this.stepSizes(idx) * p
             res := this.x.t * wTmp - this.y
-            var trainError: Double = res.toArray.map(a => a*a).reduce(_ + _)
-            var wNorm: Double = wTmp.toArray.map(a => a*a).reduce(_ + _)
+            var trainError: Double = res.toArray.map(a => a*a).sum
+            var wNorm: Double = wTmp.toArray.map(a => a*a).sum
             this.objValArray(idx) = (trainError + this.s * this.gamma * wNorm) / 2.0
         }
         
@@ -228,9 +231,9 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
         var g: DenseMatrix[Double] = this.x * res 
         g := g + (this.s * this.gamma) * w
         // training error
-        val trainError: Double = res.toArray.map(a => a*a).reduce(_ + _)
+        val trainError: Double = res.toArray.map(a => a*a).sum
         // objective function value
-        val wNorm: Double = w.toArray.map(a => a*a).reduce(_ + _)
+        val wNorm: Double = w.toArray.map(a => a*a).sum
         val objVal: Double = (trainError + this.s * this.gamma * wNorm) / 2
         (g.toArray, trainError, objVal)
     }
