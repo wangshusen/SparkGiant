@@ -63,8 +63,8 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
         
         // initialize w by model averaging
         this.w = rddTrain.map(_.solve())
-                            .reduce((a,b) => (a,b).zipped.map(_ + _))
-                            .map(_ / this.n.toDouble)
+                        .reduce((a,b) => (a,b).zipped.map(_ + _))
+                        .map(_ / this.n.toDouble)
         println("Driver: model averaging is done!")
         
         // record the objectives of each iteration
@@ -109,10 +109,10 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
         // search for a step size that leads to sufficient decrease
         if (isSearch) { 
             val pg: Double = (this.p, this.g).zipped.map(_ * _).reduce(_ + _)
-            eta = this.lineSearch(rddTrain, -0.1 * pg, wBc, pBc)
+            this.eta = this.lineSearch(rddTrain, -0.1 * pg, wBc, pBc)
         }
         else {
-            eta = 1.0
+            this.eta = 1.0
         }
         
         // take approximate Newton step
@@ -186,7 +186,7 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     }
 
     /**
-     * Compute the local objective function value
+     * Compute the local objective function values
      *      0.5*||X (w - eta*p) - y||_2^2 + 0.5*s*gamma*||(w - eta*p)||_2^2
      * for all eta in the candidate set.
      * This function is for line search.
@@ -212,6 +212,9 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     }
 
     /**
+     * Compute the local gradient.
+     * As by-products, also compute the training error and objective value.
+     *
      * @param w the current solution
      * @return g = X' * (X * w - y) + s * gamma * w , the local gradient
      * @return trainError = ||X w - y||_2^2 , the local training error
@@ -220,8 +223,10 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     def grad(wArray: Array[Double]): (Array[Double], Double, Double) = {
         val w: DenseMatrix[Double] = new DenseMatrix(this.d, 1, wArray)
         // gradient
-        val res: DenseMatrix[Double] = this.x.t * w - this.y
-        val g: DenseMatrix[Double] = this.x * res + (this.s * this.gamma) * w
+        var res: DenseMatrix[Double] = this.x.t * w
+        res := res - this.y
+        var g: DenseMatrix[Double] = this.x * res 
+        g := g + (this.s * this.gamma) * w
         // training error
         val trainError: Double = res.toArray.map(a => a*a).reduce(_ + _)
         // objective function value
