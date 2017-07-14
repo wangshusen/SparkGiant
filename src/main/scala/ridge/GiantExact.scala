@@ -89,14 +89,15 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
     def update(rddTrain: RDD[Executor]): Unit ={
         // broadcast w
         val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
-        //this.wBc = this.sc.broadcast(this.w)
         
         // compute full gradient
         var tmp: (Array[Double], Double, Double) = rddTrain.map(exe => exe.grad(wBc.value))
                     .reduce((a, b) => ((a._1,b._1).zipped.map(_ + _), a._2+b._2, a._3+b._3))
         this.g = tmp._1.map(_ / this.n.toDouble)
         val gBc: Broadcast[Array[Double]] = this.sc.broadcast(this.g)
-        //this.gBc = this.sc.broadcast(this.g)
+        
+        val gNorm: Double = g.map(a => a*a).sum
+        println("Squared norm of gradient is " + gNorm.toString)
         
         // update the training error and objective value
         this.trainError = tmp._2 * (1.0 / this.n)
@@ -107,7 +108,6 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
                         .reduce((a,b) => (a,b).zipped.map(_ + _)) 
                         .map(_ / this.n.toDouble)
         val pBc: Broadcast[Array[Double]] = this.sc.broadcast(this.p)
-        //this.pBc = this.sc.broadcast(this.p)
         
         // search for a step size that leads to sufficient decrease
         if (isSearch) { 
