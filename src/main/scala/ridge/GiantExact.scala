@@ -60,7 +60,9 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
         println("Driver: executors are setup for training! gamma = " + gamma.toString)
         
         // initialize w by model averaging
-        this.w := rddTrain.map(_.solve()).reduce((a, b) => a+b) * (1.0 / this.m)
+        this.w := rddTrain.map(_.solve())
+                        .reduce((a, b) => a+b)
+        this.w *= (1.0 / this.m)
         println("Driver: model averaging is done!")
         
         // record the objectives of each iteration
