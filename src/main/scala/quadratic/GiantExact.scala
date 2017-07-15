@@ -11,7 +11,7 @@ import breeze.numerics._
 // others
 import scala.math
 
-import distopt.quadratic.Executor
+//import distopt.quadratic.Executor
 
 /**
  * Solve a ridge regression problem using GIANT with the local problems exactly solved. 
@@ -21,24 +21,8 @@ import distopt.quadratic.Executor
  * @param data RDD of (label, feature)
  * @param isSearch is true if line search is used to determine the step size; otherwise use 1.0 as step size
  */
-class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch: Boolean = false) {
-    // constants
-    val n: Long = data.count
-    val d: Int = data.take(1)(0)._2.size
-    val m: Long = data.getNumPartitions
-    
-    // variables
-    var w: Array[Double] = new Array[Double](d)
-    var g: Array[Double] = new Array[Double](d)
-    var p: Array[Double] = new Array[Double](d)
-    var trainError: Double = 0.0
-    var objVal: Double = 0.0
-    
-    // for line search
-    var eta: Double = 0.0
-    val numStepSizes: Int = 10
-    val stepSizes: Array[Double] = (0 until numStepSizes).toArray.map(1.0 / math.pow(4, _))
-    val stepSizesBc = sc.broadcast(stepSizes)
+class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boolean = false)
+        extends distopt.quadratic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
     
     // initialize executors
     val t0: Double = System.nanoTime()
@@ -57,7 +41,9 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
     def train(gamma: Double, maxIter: Int): (Array[Double], Array[Double], Array[Double]) = {
         // setup the executors for training
         val rddTrain: RDD[Executor] = this.rdd
-                                    .map(exe => {exe.setGamma(gamma); exe.invertHessian; exe})
+                                    .map(exe => {exe.setGamma(gamma);  
+                                                 exe.invertHessian; 
+                                                 exe})
                                     .persist()
         println("count = " + rddTrain.count.toString)
         println("Driver: executors are setup for training! gamma = " + gamma.toString)
@@ -86,7 +72,16 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
         (trainErrorArray, objValArray, timeArray.map(time => time*1.0E-9))
     }
 
-    // Take one approximate Newton step.
+    /* Take one approximate Newton step.
+     *
+     * Update:
+     *  1. this.w
+     *  2. this.trainError
+     *  3. this.objVal
+     *
+     * @param rddTrain RDD of executors
+     * @return
+     */
     def update(rddTrain: RDD[Executor]): Unit ={
         // broadcast w
         val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
@@ -111,61 +106,24 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
         val pBc: Broadcast[Array[Double]] = this.sc.broadcast(this.p)
         
         // search for a step size that leads to sufficient decrease
+        var eta = 1.0
         if (isSearch) { 
+            // get the objective values f(w - eta*p) for all eta in the candidate list
+            val objVals: Array[Double] = rddTrain
+                            .map(_.objFunVal(wBc.value, pBc.value))
+                            .reduce((a,b) => (a,b).zipped.map(_ + _))
+                            .map(_ / this.n.toDouble)
+            
             val pg: Double = (this.p, this.g).zipped.map(_ * _).sum
-            this.eta = this.lineSearch(rddTrain, -0.1 * pg, wBc, pBc)
-        }
-        else {
-            this.eta = 1.0
+            eta = this.lineSearch(objVals, -0.1 * pg)
         }
         
         // take approximate Newton step
         this.w = (this.w, this.p).zipped.map((a, b) => a - eta*b)
     }
     
-    /** 
-     * Search for the best step size eta
-     *
-     * @param rddTrain RDD of executors
-     * @param pg = -0.1 * <p, g>
-     * @param wBc the broadcast of w
-     * @param pBc the broadcast of p
-     * @return eta the best step size
-     */
-    def lineSearch(rddTrain: RDD[Executor], pg: Double, wBc: Broadcast[Array[Double]], pBc: Broadcast[Array[Double]]): Double = {
-        var eta: Double = 0.0
-        
-        // get the objective values f(w - eta*p) for all eta in the candidate list
-        val objVals: Array[Double] = rddTrain
-                            .map(_.objFunVal(wBc.value, pBc.value))
-                            .reduce((a,b) => (a,b).zipped.map(_ + _))
-                            .map(_ / this.n.toDouble)
-        
-        // backtracking line search (Armijo rule)
-        for (j <- 0 until this.numStepSizes) {
-            eta = this.stepSizes(j)
-            var objValNew = objVals(j)
-            // sufficient decrease in the objective value
-            if (objValNew < this.objVal + pg * eta) { 
-                return eta
-            }
-        }
-        
-        // if the search direction p does not lead to sufficient decrease,
-        // then return the smallest step size in the candidate set.
-        eta
-    }
-    
-    def predict(dataTest: RDD[(Double, Array[Double])]): Double = {
-        val nTest: Long = dataTest.count
-        val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
-        val error: Double = dataTest.map(pair => (pair._1, (pair._2, wBc.value).zipped.map(_ * _).sum))
-                        .map(pair => (pair._1 - pair._2) * (pair._1 - pair._2))
-                        .sum
-        error / nTest.toDouble
-    }
-
 }
+
 
 
 /**
@@ -174,7 +132,7 @@ class Driver(sc: SparkContext, var data: RDD[(Double, Array[Double])], isSearch:
  * @param arr array of (label, feature) pairs
  */
 class Executor(arr: Array[(Double, Array[Double])]) extends 
-        distopt.quadratic.Executor.Executor(arr) {
+        distopt.quadratic.Common.Executor(arr) {
     // initialization
     val svd.SVD(v, sig, _) = svd.reduced(this.x)
     var invH: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, d)
