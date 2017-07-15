@@ -20,7 +20,7 @@ import java.io._
 
 
 import distopt.utils._
-import distopt.ridge._
+import distopt.quadratic._
 
 object Quadratic {
     def main(args: Array[String]) {
@@ -53,9 +53,9 @@ object Quadratic {
         
         // Normalize Data
         t0 = System.nanoTime()
-        val data: RDD[(Double, Array[Double])] = Utils.normalize(sc, dataRaw).persist()
+        val (meanLabel, maxFeatures) = Utils.meanAndMax(dataRaw)
+        val data: RDD[(Double, Array[Double])] = Utils.normalize(sc, dataRaw, meanLabel, maxFeatures).persist()
         val n: Long = data.count
-        //val data = dataRaw
         t1 = System.nanoTime()
         println("n = " + n.toString)
         println("Time cost of data normalization:  " + ((t1-t0)*1e-9).toString + "  seconds.")
@@ -71,8 +71,18 @@ object Quadratic {
         println(" ")
         
         
+        // Test data
+        val dataTestRaw: RDD[(Float, Array[Double])] = Utils.loadLibsvmData(spark, filename+".t", numSplits)
+        val dataTest: RDD[(Double, Array[Double])] = Utils.normalize(sc, dataTestRaw, meanLabel, maxFeatures).persist()
+        
+        
         // Use GIANT to solve ridge regression
         var giant: GiantExact.Driver = new GiantExact.Driver(sc, data, true)
+        
+        
+        var error: Double = giant.predict(dataTest)
+        println("Test error is " + error.toString)
+        
         val results = giant.train(gamma, maxiter)
         
         println("\n ")
@@ -84,6 +94,11 @@ object Quadratic {
         println("\n ")
         println("Elapsed times are ")
         results._3.foreach(println)
+        
+        
+        error = giant.predict(dataTest)
+        println("Test error is " + error.toString)
+        
         
         spark.stop()
     }

@@ -30,20 +30,20 @@ object Utils {
         labelVectorRdd
     }
     
-    def normalize(sc: SparkContext, labelVectorRdd: RDD[(Float, Array[Double])]): RDD[(Double, Array[Double])] = {
+    def meanAndMax(labelVectorRdd: RDD[(Float, Array[Double])]): (Double, Array[Double]) = {
         val maxFeatures: Array[Double] = labelVectorRdd.map(pair => pair._2.map(math.abs))
                                 .reduce((a, b) => (a zip b).map(pair => math.max(pair._1, pair._2)) )
         val meanLabel: Double = labelVectorRdd.map(pair => pair._1)
                                 .mean
-        
+        (meanLabel, maxFeatures)
+    }
+    
+    def normalize(sc: SparkContext, labelVectorRdd: RDD[(Float, Array[Double])], meanLabel: Double, maxFeatures: Array[Double]): RDD[(Double, Array[Double])] = {
         val maxFeaturesBc = sc.broadcast(maxFeatures)
         val meanLabelBc = sc.broadcast(meanLabel)
         
         val normalizedLabelVectorRdd: RDD[(Double, Array[Double])] = labelVectorRdd
             .map(pair => (pair._1-meanLabelBc.value, (pair._2 zip maxFeaturesBc.value).map(a => a._1 / a._2)))
-        
-        //println(maxFeatures.mkString(","))
-        //println(meanLabel)
         
         normalizedLabelVectorRdd
     }
