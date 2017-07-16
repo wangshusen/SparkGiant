@@ -102,6 +102,8 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     val d: Int = arr(0)._2.size
     val y: DenseMatrix[Double] = new DenseMatrix(s, 1, arr.map(pair => pair._1))
     val x: DenseMatrix[Double] = new DenseMatrix(d, s, arr.map(pair => pair._2).flatten)
+    val xy: DenseMatrix[Double] = x * y
+    val sDouble = this.s.toDouble
 
     // specific to training
     var gamma: Double = 0.0
