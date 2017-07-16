@@ -46,15 +46,17 @@ object Quadratic {
         val (data, dataTest) = loadData(spark, filename, numSplits)
         
         // initialize driver
-        val isSearch: Boolean = true
-        var giant: GiantExact.Driver = new GiantExact.Driver(sc, data, isSearch)
+        val isSearch: Boolean = false
+        //var giant: GiantExact.Driver = new GiantExact.Driver(sc, data, isSearch)
+        var giant: GiantCg.Driver = new GiantCg.Driver(sc, data, isSearch)
         
         // test error before training
         var testError: Double = giant.predict(dataTest)
         println("Initial test error is " + testError.toString)
         
         // training
-        val (trainErrors, objVals, times) = giant.train(gamma, maxiter)
+        //val (trainErrors, objVals, times) = giant.train(gamma, maxiter)
+        val (trainErrors, objVals, times) = giant.train(gamma, maxiter, 20)
         println("\n ")
         println("Objective values are ")
         objVals.foreach(println)
