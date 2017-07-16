@@ -20,7 +20,7 @@ object CG {
      */
     def cgSolver1(a: DenseMatrix[Double], b: DenseMatrix[Double], lam: Double, maxiter: Int = 20, tol0: Double = 1E-16): DenseMatrix[Double] = {
         val d: Int = a.rows
-        val tol: Double = tol0 * math.sqrt(sum(b :* b))
+        val tol: Double = tol0 * math.sqrt(b.toArray.map(x => x*x).sum)
         val w: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
         val r: DenseMatrix[Double] = b - lam * w - a * (a.t * w)
         val p: DenseMatrix[Double] = r.copy
@@ -58,7 +58,7 @@ object CG {
      */
     def cgSolver2(h: DenseMatrix[Double], b: DenseMatrix[Double], lam: Double, maxiter: Int = 20, tol0: Double = 1E-16): DenseMatrix[Double] = {
         val d: Int = h.rows
-        val tol: Double = tol0 * math.sqrt(sum(b :* b))
+        val tol: Double = tol0 * math.sqrt(b.toArray.map(x => x*x).sum)
         val w: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
         val r: DenseMatrix[Double] = b - lam * w - h * w
         val p: DenseMatrix[Double] = r.copy
