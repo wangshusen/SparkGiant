@@ -20,7 +20,6 @@ import breeze.numerics._
 class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boolean = false)
         extends distopt.quadratic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
     // initialize executors
-    val t0: Double = System.nanoTime()
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
     println("Driver: executors are initialized using the input data!")
 
@@ -35,13 +34,14 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
      * @return timeArray the elapsed times counted at each iteration
      */
     def train(gamma: Double, maxIter: Int, q: Int): (Array[Double], Array[Double], Array[Double]) = {
-        // decide whether or not to form the Hessian matrix
-        var isFormHessian = false
+        // decide whether to form the Hessian matrix
         val s: Double = this.n.toDouble / this.m.toDouble
         val cost1: Double = 2 * q * s // CG without the Hessian formed
         val cost2: Double = (s + q) * this.d // CG with the Hessian formed
-        if (cost1 < cost2) isFormHessian = false
-        else isFormHessian = true
+        var isFormHessian: Boolean = if(cost1 < cost2) false else true
+        
+        println("There are " + this.rdd.count.toString + " executors.")
+        val t0: Double = System.nanoTime()
         
         // setup the executors for training
         val rddTrain: RDD[Executor] = this.rdd

@@ -1,4 +1,4 @@
-package distopt
+package distopt.quadratic
 
 // spark-core
 import org.apache.spark.SparkContext
@@ -7,10 +7,6 @@ import org.apache.spark.SparkConf
 import org.apache.spark.rdd._
 // spark-sql
 import org.apache.spark.sql.SparkSession
-// spark-mllib
-//import org.apache.spark.mllib.linalg.{Vector, Vectors, Matrix, Matrices, DenseMatrix, DenseVector}
-//import org.apache.spark.mllib.linalg.distributed.RowMatrix
-//import org.apache.spark.mllib.linalg.SingularValueDecomposition
 // breeze
 import breeze.linalg._
 import breeze.numerics._
@@ -22,12 +18,12 @@ import java.io._
 import distopt.utils._
 import distopt.quadratic._
 
-object Quadratic {
+object Experiment {
     def main(args: Array[String]) {
         // parse parameters from command line arguments
         val filename: String = args(0).toString
         val numSplits: Int = args(1).toInt
-        val gamma: Double = args(2).toDouble
+        var gamma: Double = args(2).toDouble
         val maxiter: Int = args(3).toInt
         
         // launch Spark
@@ -50,28 +46,33 @@ object Quadratic {
         //var giant: GiantExact.Driver = new GiantExact.Driver(sc, data, isSearch)
         var giant: GiantCg.Driver = new GiantCg.Driver(sc, data, isSearch)
         
-        // test error before training
-        var testError: Double = giant.predict(dataTest)
-        println("Initial test error is " + testError.toString)
         
-        // training
-        //val (trainErrors, objVals, times) = giant.train(gamma, maxiter)
-        val (trainErrors, objVals, times) = giant.train(gamma, maxiter, 20)
-        println("\n ")
-        println("Objective values are ")
-        objVals.foreach(println)
-        println("\n ")
-        println("Training errors are ")
-        trainErrors.foreach(println)
-        println("\n ")
-        println("Elapsed times are ")
-        times.foreach(println)
+        trainAndTest(gamma, maxiter, 20, giant, dataTest)
         
-        // test error after training
-        testError = giant.predict(dataTest)
-        println("Test error is " + testError.toString)
+        gamma = 1E-8
+        trainAndTest(gamma, maxiter, 20, giant, dataTest)
+        
         
         spark.stop()
+    }
+    
+    def trainAndTest(gamma: Double, maxiter: Int, q: Int, giant: GiantCg.Driver, dataTest: RDD[(Double, Array[Double])]): Unit = {
+        val results = giant.train(gamma, maxiter, q)
+        println("\n ")
+        println("Objective values are ")
+        results._2.foreach(println)
+        println("\n ")
+        println("Training errors are ")
+        results._1.foreach(println)
+        println("\n ")
+        println("Elapsed times are ")
+        results._3.foreach(println)
+        
+        // test error after training
+        val testError: Double = giant.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
     }
     
     def loadData(spark: SparkSession, filename: String, numSplits: Int): (RDD[(Double, Array[Double])], RDD[(Double, Array[Double])]) = {

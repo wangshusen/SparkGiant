@@ -6,11 +6,10 @@ JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 NUM_SPLITS="32"
 MASTER="local["$NUM_SPLITS"]"
 
-DATA_FILE="$PROJ_HOME/data/YearPredictionMSD"
-export OUTPUT_FILE="$PROJ_HOME/result/kernel_kmeans_result"
+DATA_FILE="$PROJ_HOME/data/a9a"
 
 $SPARK_HOME/bin/spark-submit \
-    --class "distopt.Quadratic" \
+    --class "distopt.logistic.Experiment" \
     --master $MASTER \
     --driver-memory 3G \
     --executor-cores 1 \

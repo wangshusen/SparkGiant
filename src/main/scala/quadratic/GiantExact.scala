@@ -21,7 +21,6 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         extends distopt.quadratic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
     
     // initialize executors
-    val t0: Double = System.nanoTime()
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
     println("Driver: executors are initialized using the input data!")
 
@@ -35,13 +34,15 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
      * @return timeArray the elapsed times counted at each iteration
      */
     def train(gamma: Double, maxIter: Int): (Array[Double], Array[Double], Array[Double]) = {
+        println("There are " + this.rdd.count.toString + " executors.")
+        val t0: Double = System.nanoTime()
+        
         // setup the executors for training
         val rddTrain: RDD[Executor] = this.rdd
                                     .map(exe => {exe.setGamma(gamma);  
                                                  exe.invertHessian; 
                                                  exe})
                                     .persist()
-        println("count = " + rddTrain.count.toString)
         println("Driver: executors are setup for training! gamma = " + gamma.toString)
         
         // initialize w by model averaging
@@ -165,7 +166,7 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
      */
     def newton(gArray: Array[Double]): Array[Double] = {
         val g: DenseMatrix[Double] = new DenseMatrix(this.d, 1, gArray)
-        val p: DenseMatrix[Double] = (this.invH * g) * this.s.toDouble
+        val p: DenseMatrix[Double] = (this.invH * g) * this.sDouble
         p.toArray
     }
 }
