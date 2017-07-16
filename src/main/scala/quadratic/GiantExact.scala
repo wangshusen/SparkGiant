@@ -8,10 +8,6 @@ import org.apache.spark.broadcast._
 // breeze
 import breeze.linalg._
 import breeze.numerics._
-// others
-import scala.math
-
-//import distopt.quadratic.Executor
 
 /**
  * Solve a ridge regression problem using GIANT with the local problems exactly solved. 
@@ -123,7 +119,6 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
     }
     
 }
-
 
 
 /**

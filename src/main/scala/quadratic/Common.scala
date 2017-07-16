@@ -1,6 +1,5 @@
 package distopt.quadratic.Common
 
-
 // spark-core
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
@@ -21,9 +20,8 @@ object Constants {
 }
 
 
-
 /**
- * Solve a ridge regression problem using GIANT with the local problems exactly solved. 
+ * Solve a ridge regression problem. 
  * Model: 0.5*||X w - y||_2^2 + 0.5*gamma*||w||_2^2
  * 
  * @param sc SparkContext
@@ -48,14 +46,13 @@ class Driver(sc: SparkContext, n0: Long, d0: Int, m0: Long) {
     val numStepSizes: Int = Constants.numStepSizes
     val baseStepSizes: Double = Constants.baseStepSizes
     val stepSizes: Array[Double] = (0 until numStepSizes).toArray.map(1.0 / math.pow(baseStepSizes, _))
-    //val numStepSizesBc: Broadcast[Int] = sc.broadcast(this.numStepSizes)
-    //val baseStepSizesBc: Broadcast[Double] = sc.broadcast(this.baseStepSizes)
     
     /** 
      * Search for the best step size eta
      *
-     * @objVals array of objective values
+     * @param objVals array of objective values
      * @param pg = -0.1 * <p, g>
+     * @return eta the biggest step size that leads to sufficient improvement
      */
     def lineSearch(objVals: Array[Double], pg: Double): Double = {
         var eta: Double = 0.0
@@ -75,19 +72,23 @@ class Driver(sc: SparkContext, n0: Long, d0: Int, m0: Long) {
         eta
     }
     
+    /** 
+     * Compute the mean squares error for test data.
+     *
+     * @param dataTest RDD of label-feature pair
+     * @return mse of the test data
+     */
     def predict(dataTest: RDD[(Double, Array[Double])]): Double = {
         val nTest: Long = dataTest.count
         val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
         val error: Double = dataTest.map(pair => (pair._1, (pair._2, wBc.value).zipped.map(_ * _).sum))
                         .map(pair => (pair._1 - pair._2) * (pair._1 - pair._2))
                         .sum
-        error / nTest.toDouble
+        val mse: Double = error / nTest.toDouble
+        mse
     }
 
 }
-
-
-
 
 
 /**
