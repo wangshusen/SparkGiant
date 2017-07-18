@@ -25,6 +25,7 @@ object Experiment {
         val numSplits: Int = args(1).toInt
         var gamma: Double = args(2).toDouble
         val maxiter: Int = args(3).toInt
+        val q: Int = args(4).toInt
         
         // launch Spark
         var t0 = System.nanoTime()
@@ -43,14 +44,10 @@ object Experiment {
         
         // initialize driver
         val isSearch: Boolean = false
-        //var giant: GiantExact.Driver = new GiantExact.Driver(sc, data, isSearch)
         var giant: GiantCg.Driver = new GiantCg.Driver(sc, data, isSearch)
         
-        
-        trainAndTest(gamma, maxiter, 20, giant, dataTest)
-        
-        gamma = 1E-8
-        trainAndTest(gamma, maxiter, 20, giant, dataTest)
+        // train and test
+        trainAndTest(gamma, maxiter, q, giant, dataTest)
         
         
         spark.stop()

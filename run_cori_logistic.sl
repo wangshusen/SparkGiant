@@ -10,7 +10,7 @@
 
 PROJ_HOME="$SCRATCH/SparkGiant"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
-DATA_FILE="$PROJ_HOME/data/YearPredictionMSD"
+DATA_FILE="$PROJ_HOME/data/covtype"
 
 NUM_SPLITS="256"
 
@@ -20,7 +20,7 @@ ulimit -s unlimited
 start-all.sh
 
 spark-submit \
-    --class "distopt.Quadratic" \
-    $JAR_FILE $DATA_FILE $NUM_SPLITS 1E-6 50 
+    --class "distopt.logistic.Experiment" \
+    $JAR_FILE $DATA_FILE $NUM_SPLITS 1E-6 50 100
   
 stop-all.sh
