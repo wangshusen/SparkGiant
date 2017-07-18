@@ -163,7 +163,7 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
         // training error
         val trainError: Double = res.toArray.map(a => a*a).sum
         // objective function value
-        val wNorm: Double = w.toArray.map(a => a*a).sum
+        val wNorm: Double = wArray.map(a => a*a).sum
         val objVal: Double = (trainError + this.s * this.gamma * wNorm) / 2
         (g.toArray, trainError, objVal)
     }

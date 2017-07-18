@@ -3,10 +3,10 @@
 PROJ_HOME="$HOME/Code/SparkGiant"
 SPARK_HOME="$HOME/local/spark-2.1.1"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
-NUM_SPLITS="32"
+NUM_SPLITS="8"
 MASTER="local["$NUM_SPLITS"]"
 
-DATA_FILE="$PROJ_HOME/data/a9a"
+DATA_FILE="$PROJ_HOME/data/covtype"
 
 $SPARK_HOME/bin/spark-submit \
     --class "distopt.logistic.Experiment" \
@@ -14,7 +14,7 @@ $SPARK_HOME/bin/spark-submit \
     --driver-memory 3G \
     --executor-cores 1 \
     --executor-memory 1G \
-    $JAR_FILE $DATA_FILE $NUM_SPLITS 1E-6 30 \
+    $JAR_FILE $DATA_FILE $NUM_SPLITS 1E-3 30 100 \
     > result.out
   
   
