@@ -15,13 +15,17 @@ import scala.math
 
 
 object Utils {
-    def loadLibsvmData(spark: SparkSession, filename: String, numSplits: Int): RDD[(Float, Array[Double])] = {
+    def loadLibsvmData(spark: SparkSession, filename: String, numSplits: Int = -1): RDD[(Float, Array[Double])] = {
         // Loads data
-        val rawdata = spark.read.format("libsvm")
+        var rawdata = spark.read.format("libsvm")
                                 .load(filename)
                                 .rdd
-                                .coalesce(numSplits)
-        // note: coalesce can result in data being sent over the network. avoid this for large datasets
+        if (numSplits > 0) {
+            // note: coalesce can result in data being sent over the network. avoid this for large datasets
+            rawdata = rawdata.coalesce(numSplits)
+        }
+        
+        
         
         val labelVectorRdd: RDD[(Float, Array[Double])] = rawdata
                 .map(pair => (pair(0).toString.toFloat, Vectors.parse(pair(1).toString).toArray))

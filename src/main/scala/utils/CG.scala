@@ -18,7 +18,7 @@ object CG {
      * @param tol0 convergence tolerance
      * @return w the solution
      */
-    def cgSolver1(a: DenseMatrix[Double], b: DenseMatrix[Double], lam: Double, maxiter: Int = 20, tol0: Double = 1E-16): DenseMatrix[Double] = {
+    def cgSolver1(a: DenseMatrix[Double], b: DenseMatrix[Double], lam: Double, maxiter: Int = 20, tol0: Double = 1E-20): DenseMatrix[Double] = {
         val d: Int = a.rows
         val tol: Double = tol0 * math.sqrt(b.toArray.map(x => x*x).sum)
         val w: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
@@ -28,6 +28,7 @@ object CG {
         var rsold: Double = r.toArray.map(x => x*x).sum
         var rsnew: Double = 0.0
         var alpha: Double = 0.0
+        var rssqrt: Double = 0.0
         
         for (q <- 0 until maxiter) {
             ap := lam * p + a * (a.t * p)
@@ -35,8 +36,9 @@ object CG {
             w += alpha * p
             r -= alpha * ap
             rsnew = r.toArray.map(a => a*a).sum
-            if (math.sqrt(rsnew) < tol) {
-                println("Converged! res = " + rsnew.toString)
+            rssqrt = math.sqrt(rsnew)
+            if (rssqrt < tol) {
+                println("Iter " + q.toString + ": converged! res = " + rssqrt.toString)
                 return w
             }
             p := r + (rsnew / rsold) * p
@@ -56,7 +58,7 @@ object CG {
      * @param tol0 convergence tolerance
      * @return w the solution
      */
-    def cgSolver2(h: DenseMatrix[Double], b: DenseMatrix[Double], lam: Double, maxiter: Int = 20, tol0: Double = 1E-16): DenseMatrix[Double] = {
+    def cgSolver2(h: DenseMatrix[Double], b: DenseMatrix[Double], lam: Double, maxiter: Int = 20, tol0: Double = 1E-20): DenseMatrix[Double] = {
         val d: Int = h.rows
         val tol: Double = tol0 * math.sqrt(b.toArray.map(x => x*x).sum)
         val w: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
@@ -66,6 +68,7 @@ object CG {
         var rsold: Double = r.toArray.map(a => a*a).sum
         var rsnew: Double = 0.0
         var alpha: Double = 0.0
+        var rssqrt: Double = 0.0
         
         for (q <- 0 until maxiter) {
             ap := lam * p + h * p
@@ -73,8 +76,9 @@ object CG {
             w += alpha * p
             r -= alpha * ap
             rsnew = r.toArray.map(x => x*x).sum
-            if (math.sqrt(rsnew) < tol) {
-                println("Converged! res = " + rsnew.toString)
+            rssqrt = math.sqrt(rsnew)
+            if (rssqrt < tol) {
+                println("Iter " + q.toString + ": converged! res = " + rssqrt.toString)
                 return w
             }
             p := r + (rsnew / rsold) * p
