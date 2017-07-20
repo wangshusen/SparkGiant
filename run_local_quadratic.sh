@@ -14,7 +14,7 @@ $SPARK_HOME/bin/spark-submit \
     --driver-memory 3G \
     --executor-cores 1 \
     --executor-memory 1G \
-    $JAR_FILE $DATA_FILE $NUM_SPLITS 1E-3 30 \
+    $JAR_FILE $DATA_FILE $NUM_SPLITS 1E-3 30 50 \
     > result.out
   
   

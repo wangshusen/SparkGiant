@@ -49,9 +49,9 @@ object Experiment {
                                                                 .zipWithIndex
                                                                 .persist()
         
-        var data: RDD[(Double, Array[Double])] = dataIdx.filter(pair => (pair._2 % 2 == 0))
+        var data: RDD[(Double, Array[Double])] = dataIdx.filter(pair => (pair._2 % 5 > 0.1))
                                                         .map(pair => pair._1)
-        var dataTest: RDD[(Double, Array[Double])] = dataIdx.filter(pair => (pair._2 % 2 == 1))
+        var dataTest: RDD[(Double, Array[Double])] = dataIdx.filter(pair => (pair._2 % 5 == 0))
                                                         .map(pair => pair._1)
         
         val samples = data.take(10).map(pair => pair._1.toString + ",  " + pair._2.mkString(" ")).foreach(println)

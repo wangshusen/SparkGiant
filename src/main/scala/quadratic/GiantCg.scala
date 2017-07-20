@@ -138,9 +138,10 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
         distopt.quadratic.Common.Executor(arr) {
     // parameters for CG
     var q: Int = 0 // number of CG iterations
-    var isFormHessian: Boolean = false
+    var isFormHessian: Boolean = true
     var isXx: Boolean = false
     var xx: DenseMatrix[Double] = DenseMatrix.zeros[Double](1, 1)
+    val cg: distopt.utils.CG = new distopt.utils.CG(this.d)
             
     def setParam(q0: Int, isFormHessian0: Boolean){
         this.q = q0
@@ -163,11 +164,11 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
      */
     def solve(): Array[Double] = {
         if (this.isFormHessian) {
-            val w: DenseMatrix[Double] = distopt.utils.CG.cgSolver2(this.xx, this.xy, this.sDouble * this.gamma, this.q) * this.sDouble
+            val w: DenseMatrix[Double] = cg.solver2(this.xx, this.xy, this.sDouble * this.gamma, this.q) * this.sDouble
             return w.toArray
         }
         else {
-            val w: DenseMatrix[Double] = distopt.utils.CG.cgSolver1(this.x, this.xy, this.sDouble * this.gamma, this.q) * this.sDouble
+            val w: DenseMatrix[Double] = cg.solver1(this.x, this.xy, this.sDouble * this.gamma, this.q) * this.sDouble
             return w.toArray
         }
     }
@@ -181,11 +182,11 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
     def newton(gArray: Array[Double]): Array[Double] = {
         val g: DenseMatrix[Double] = new DenseMatrix(this.d, 1, gArray)
         if (this.isFormHessian) {
-            val p: DenseMatrix[Double] = distopt.utils.CG.cgSolver2(this.xx, this.sDouble * g, this.sDouble * this.gamma, this.q) * this.sDouble
+            val p: DenseMatrix[Double] = cg.solver2(this.xx, this.sDouble * g, this.sDouble * this.gamma, this.q) * this.sDouble
             return p.toArray
         }
         else {
-            val p: DenseMatrix[Double] = distopt.utils.CG.cgSolver1(this.x, this.sDouble * g, this.sDouble * this.gamma, this.q) * this.sDouble
+            val p: DenseMatrix[Double] = cg.solver1(this.x, this.sDouble * g, this.sDouble * this.gamma, this.q) * this.sDouble
             return p.toArray
         }
     }

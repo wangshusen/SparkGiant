@@ -35,6 +35,7 @@ class Driver(sc: SparkContext, n0: Long, d0: Int, m0: Long) {
     val n: Long = n0
     val d: Int = d0
     val m: Long = m0
+    val nInv: Double = 1.0 / n.toDouble
     
     // variables
     var w: Array[Double] = new Array[Double](d)
@@ -73,6 +74,7 @@ class Driver(sc: SparkContext, n0: Long, d0: Int, m0: Long) {
         eta
     }
     
+    
     /** 
      * Compute the error for test data.
      *
@@ -82,10 +84,11 @@ class Driver(sc: SparkContext, n0: Long, d0: Int, m0: Long) {
     def predict(dataTest: RDD[(Double, Array[Double])]): Double = {
         val nTest: Long = dataTest.count
         val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
-        val error: Double = dataTest.map(pair => (pair._1, (pair._2, wBc.value).zipped.map(_ * _).sum))
-                                .map(pair => -1.0 * pair._1 * pair._2)
-                                .filter(_ > -0.1)
-                                .count
+        val error: Double = dataTest
+                            .map(pair => (pair._1, math.signum((pair._2, wBc.value).zipped.map(_ * _).sum.toDouble)))
+                            .map(pair => -1.0 * pair._1 * pair._2)
+                            .filter(_ > -0.1)
+                            .count
         error / nTest.toDouble
     }
 
@@ -104,7 +107,10 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     val x: DenseMatrix[Double] = new DenseMatrix(d, s, arr.map(pair => pair._2.map(a => pair._1 * a)).flatten)
     val y: Array[Double] = arr.map(pair => pair._1)
     val a: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, s)
-    val sDouble = this.s.toDouble
+    val sDouble: Double = s.toDouble
+    val sInv: Double = 1.0 / sDouble
+    
+    println("Executor: holding " + s.toString + " samples.")
     
     // make sure y has {+1, -1} values
     val ymin: Double = y.min
@@ -118,12 +124,10 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     // parameters for CG
     var q: Int = 0 // number of CG iterations
     var isFormHessian: Boolean = false
-    var cgtol: Double = 1e-16 / this.sDouble
             
     def setParam(q0: Int, isFormHessian0: Boolean){
         this.q = q0
         this.isFormHessian = isFormHessian0
-        cgtol = 1e-16 / this.sDouble
     }
     
     // for line search
@@ -134,7 +138,6 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
 
     def setGamma(gamma0: Double): Unit = {
         this.gamma = gamma0
-        cgtol = 1e-16 / this.sDouble
     }
 
     /**
@@ -179,18 +182,24 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
         val w: DenseMatrix[Double] = new DenseMatrix(this.d, 1, wArray)
         val z: Array[Double] = (this.x.t * w).toArray
         val zexp: Array[Double] = z.map((a: Double) => math.exp(a))
+        
         // gradient
         val c: DenseMatrix[Double] = new DenseMatrix(this.s, 1, zexp.map((a: Double) => -1.0 / (1.0 + a)))
-        val g: DenseMatrix[Double] = this.x * c + (this.s * this.gamma) * w
+        val g: Array[Double] = (this.x * c + (this.s * this.gamma) * w).toArray
+        
         // objective function value
         val loss: Double = zexp.map((a: Double) => math.log(1.0 + 1.0 / a)).sum
         val wNorm: Double = wArray.map(a => a*a).sum
         val objVal: Double = loss + this.s * this.gamma * wNorm * 0.5
+        
         // training error
         val pred: Array[Double] = z.map((a: Double) => math.signum(a))
-        val trainError: Double = (pred, this.y).zipped.map(-1.0 * _ * _).filter(_ > -0.1).length
+        val trainError: Double = z.filter(_ < 1E-30).length.toDouble
         
-        (g.toArray, trainError, objVal)
+        val gNorm: Double = g.map(a => a / this.s.toDouble).map(a => a*a).sum
+        println("Executor: squared norm of gradient is " + gNorm.toString)
+        
+        (g, trainError, objVal)
     }
 
     

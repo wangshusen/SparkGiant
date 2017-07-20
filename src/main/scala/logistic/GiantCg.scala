@@ -25,7 +25,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
     println("Driver: executors are initialized using the input data!")
             
-    val isModelAvg: Boolean = true
+    val isModelAvg: Boolean = false
 
     /**
      * Train a logistic regression model using GIANT with the local problems solved by fixed number of CG steps.
@@ -63,7 +63,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
             val svrgLearningRate: Double = 1.0
             this.w = rddTrain.map(_.solve(svrgLearningRate, 500))
                             .reduce((a,b) => (a,b).zipped.map(_ + _))
-                            .map(_ / this.n.toDouble)
+                            .map(_ * this.nInv)
             println("Driver: model averaging is done!")
             
         }
@@ -103,20 +103,20 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         // compute full gradient
         var tmp: (Array[Double], Double, Double) = rddTrain.map(exe => exe.grad(wBc.value))
                     .reduce((a, b) => ((a._1,b._1).zipped.map(_ + _), a._2+b._2, a._3+b._3))
-        this.g = tmp._1.map(_ / this.n.toDouble)
+        this.g = tmp._1.map(_ * this.nInv)
         val gBc: Broadcast[Array[Double]] = this.sc.broadcast(this.g)
         
         val gNorm: Double = g.map(a => a*a).sum
-        println("Squared norm of gradient is " + gNorm.toString)
+        println("Driver: squared norm of gradient is " + gNorm.toString)
         
         // update the training error and objective value
-        this.trainError = tmp._2 * (1.0 / this.n)
-        this.objVal = tmp._3 * (1.0 / this.n)
+        this.trainError = tmp._2 * this.nInv
+        this.objVal = tmp._3 * this.nInv
 
         // compute the averaged Newton direction
         this.p = rddTrain.map(exe => exe.newton(wBc.value, gBc.value))
                         .reduce((a,b) => (a,b).zipped.map(_ + _)) 
-                        .map(_ / this.n.toDouble)
+                        .map(_ * this.nInv)
         val pBc: Broadcast[Array[Double]] = this.sc.broadcast(this.p)
         
         // search for a step size that leads to sufficient decrease
@@ -126,10 +126,11 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
             val objVals: Array[Double] = rddTrain
                             .map(_.objFunVal(wBc.value, pBc.value))
                             .reduce((a,b) => (a,b).zipped.map(_ + _))
-                            .map(_ / this.n.toDouble)
+                            .map(_ * this.nInv)
             
             val pg: Double = (this.p, this.g).zipped.map(_ * _).sum
             eta = this.lineSearch(objVals, -0.1 * pg)
+            println("Eta = " + eta.toString)
         } 
         
         // take approximate Newton step
@@ -146,12 +147,9 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
  */
 class Executor(arr: Array[(Double, Array[Double])]) extends 
         distopt.logistic.Common.Executor(arr) {
-    /**
-     * Compute the local Newton direction
-     *
-     * @param gArray the full gradient
-     * @return the local Newton direction scaled by s
-     */
+            
+    val cg: distopt.utils.CG = new distopt.utils.CG(this.d)
+    
     def newton(wArray: Array[Double], gArray: Array[Double]): Array[Double] = {
         val g: DenseMatrix[Double] = new DenseMatrix(this.d, 1, gArray)
         val w: DenseMatrix[Double] = new DenseMatrix(this.d, 1, wArray)
@@ -160,18 +158,18 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
         for (j <- 0 until this.s) {
             this.a(::, j) := ddiag(j) * this.x(::, j)
         }
-        this.cgtol *= 0.5
         
         if (this.isFormHessian) {
             val aa: DenseMatrix[Double] = this.a * this.a.t
-            val p: DenseMatrix[Double] = distopt.utils.CG.cgSolver2(aa, this.sDouble * g, this.sDouble * this.gamma, this.q, this.cgtol) * this.sDouble
+            val p: DenseMatrix[Double] = cg.solver2(aa, this.sDouble * g, this.sDouble * this.gamma, this.q) * this.sDouble
             return p.toArray
         }
         else {
-            val p: DenseMatrix[Double] = distopt.utils.CG.cgSolver1(this.a, this.sDouble * g, this.sDouble * this.gamma, this.q, this.cgtol) * this.sDouble
+            val p: DenseMatrix[Double] = cg.solver1(this.a, this.sDouble * g, this.sDouble * this.gamma, this.q) * this.sDouble
             return p.toArray
         }
     }
+        
 }
 
 

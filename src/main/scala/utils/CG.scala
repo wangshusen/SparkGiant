@@ -7,7 +7,14 @@ import breeze.linalg._
 import breeze.numerics._
 
 
-object CG {
+class CG(d: Int) {
+    val r: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
+    val p: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
+    val ap: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
+    var cgTol: Double = 1E-20
+    
+    
+    
     /**
      * Solve (A * A' + lam * I) * w = b.
      *
@@ -15,35 +22,34 @@ object CG {
      * @param b d-by-1 dense matrix
      * @param lam regularization parameter
      * @param maxiter max number of iterations
-     * @param tol0 convergence tolerance
      * @return w the solution
      */
-    def cgSolver1(a: DenseMatrix[Double], b: DenseMatrix[Double], lam: Double, maxiter: Int = 20, tol0: Double = 1E-20): DenseMatrix[Double] = {
-        val d: Int = a.rows
-        val tol: Double = tol0 * math.sqrt(b.toArray.map(x => x*x).sum)
-        val w: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
-        val r: DenseMatrix[Double] = b - lam * w - a * (a.t * w)
-        val p: DenseMatrix[Double] = r.copy
-        val ap: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
-        var rsold: Double = r.toArray.map(x => x*x).sum
+    def solver1(a: DenseMatrix[Double], b: DenseMatrix[Double], lam: Double, maxiter: Int = 20): DenseMatrix[Double] = {
+        val tol: Double = this.cgTol * math.sqrt(b.toArray.map(x => x*x).sum)
+        val w: DenseMatrix[Double] = DenseMatrix.zeros[Double](this.d, 1)
+        this.r := b //- lam * w - a * (a.t * w)
+        this.p := r
+        var rsold: Double = this.r.toArray.map(x => x*x).sum
         var rsnew: Double = 0.0
         var alpha: Double = 0.0
         var rssqrt: Double = 0.0
         
         for (q <- 0 until maxiter) {
-            ap := lam * p + a * (a.t * p)
-            alpha = rsold / ((p :* ap).toArray.sum)
-            w += alpha * p
-            r -= alpha * ap
-            rsnew = r.toArray.map(a => a*a).sum
+            this.ap := lam * this.p + a * (a.t * this.p)
+            alpha = rsold / ((this.p :* this.ap).toArray.sum)
+            w += alpha * this.p
+            this.r -= alpha * this.ap
+            rsnew = this.r.toArray.map(a => a*a).sum
             rssqrt = math.sqrt(rsnew)
             if (rssqrt < tol) {
                 println("Iter " + q.toString + ": converged! res = " + rssqrt.toString)
                 return w
             }
-            p := r + (rsnew / rsold) * p
+            this.p *= rsnew / rsold
+            this.p += this.r
             rsold = rsnew
         }
+        this.cgTol *= 0.5
         w
     }
     
@@ -55,35 +61,37 @@ object CG {
      * @param b d-by-1 dense matrix
      * @param lam regularization parameter
      * @param maxiter max number of iterations
-     * @param tol0 convergence tolerance
      * @return w the solution
      */
-    def cgSolver2(h: DenseMatrix[Double], b: DenseMatrix[Double], lam: Double, maxiter: Int = 20, tol0: Double = 1E-20): DenseMatrix[Double] = {
+    def solver2(h: DenseMatrix[Double], b: DenseMatrix[Double], lam: Double, maxiter: Int = 20): DenseMatrix[Double] = {
         val d: Int = h.rows
-        val tol: Double = tol0 * math.sqrt(b.toArray.map(x => x*x).sum)
-        val w: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
-        val r: DenseMatrix[Double] = b - lam * w - h * w
-        val p: DenseMatrix[Double] = r.copy
-        val ap: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
+        val tol: Double = this.cgTol * math.sqrt(b.toArray.map(x => x*x).sum)
+        val w: DenseMatrix[Double] = DenseMatrix.zeros[Double](this.d, 1)
+        this.r := b //- lam * w - h * w
+        this.p := this.r
         var rsold: Double = r.toArray.map(a => a*a).sum
         var rsnew: Double = 0.0
         var alpha: Double = 0.0
         var rssqrt: Double = 0.0
         
+        for (j <- 0 until this.d) h(j, j) += lam
+        
         for (q <- 0 until maxiter) {
-            ap := lam * p + h * p
-            alpha = rsold / ((p :* ap).toArray.sum)
-            w += alpha * p
-            r -= alpha * ap
-            rsnew = r.toArray.map(x => x*x).sum
+            this.ap := h * this.p
+            alpha = rsold / ((this.p :* this.ap).toArray.sum)
+            w += alpha * this.p
+            this.r -= alpha * this.ap
+            rsnew = this.r.toArray.map(x => x*x).sum
             rssqrt = math.sqrt(rsnew)
             if (rssqrt < tol) {
                 println("Iter " + q.toString + ": converged! res = " + rssqrt.toString)
                 return w
             }
-            p := r + (rsnew / rsold) * p
+            this.p *= rsnew / rsold
+            this.p += this.r
             rsold = rsnew
         }
+        this.cgTol *= 0.5
         w
     }
     
