@@ -19,13 +19,12 @@ import breeze.numerics._
  * @param data RDD of (label, feature)
  * @param isSearch is true if line search is used to determine the step size; otherwise use 1.0 as step size
  */
-class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boolean = false)
+class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boolean = false, isModelAvg: Boolean = false)
         extends distopt.logistic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
     // initialize executors
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
+    println("There are " + rdd.count.toString + " executors.")
     println("Driver: executors are initialized using the input data!")
-            
-    val isModelAvg: Boolean = false
 
     /**
      * Train a logistic regression model using GIANT with the local problems solved by fixed number of CG steps.
@@ -40,14 +39,13 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
     def train(gamma: Double, maxIter: Int, q: Int): (Array[Double], Array[Double], Array[Double]) = {
         // decide whether to form the Hessian matrix
         val s: Double = this.n.toDouble / this.m.toDouble
-        val cost1: Double = 2 * q * s // CG without the Hessian formed
+        val cost1: Double = 4 * q * s // CG without the Hessian formed
         val cost2: Double = (s + q) * this.d // CG with the Hessian formed
         var isFormHessian: Boolean = if(cost1 < cost2) false else true
         
-        println("There are " + this.rdd.count.toString + " executors.")
         val t0: Double = System.nanoTime()
         
-        isFormHessian = true //
+        isFormHessian = true
         
         // setup the executors for training
         val rddTrain: RDD[Executor] = this.rdd
@@ -61,7 +59,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         // initialize w by model averaging
         if (isModelAvg) {
             val svrgLearningRate: Double = 1.0
-            this.w = rddTrain.map(_.solve(svrgLearningRate, 500))
+            this.w = rddTrain.map(_.solve(svrgLearningRate, q))
                             .reduce((a,b) => (a,b).zipped.map(_ + _))
                             .map(_ * this.nInv)
             println("Driver: model averaging is done!")
@@ -128,13 +126,14 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
                             .reduce((a,b) => (a,b).zipped.map(_ + _))
                             .map(_ * this.nInv)
             
-            val pg: Double = (this.p, this.g).zipped.map(_ * _).sum
+            var pg: Double = 0.0
+            for (j <- 0 until this.d) pg += this.p(j) * this.g(j)
             eta = this.lineSearch(objVals, -0.1 * pg)
             println("Eta = " + eta.toString)
         } 
         
         // take approximate Newton step
-        this.w = (this.w, this.p).zipped.map((a, b) => a - eta*b)
+        for (j <- 0 until this.d) w(j) -= eta * this.p(j)
     }
     
 }
@@ -147,9 +146,15 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
  */
 class Executor(arr: Array[(Double, Array[Double])]) extends 
         distopt.logistic.Common.Executor(arr) {
-            
     val cg: distopt.utils.CG = new distopt.utils.CG(this.d)
     
+    /**
+     * Compute approximate Newton direction using the local data.
+     *
+     * @param wArray the current solution
+     * @param gArray the full gradient
+     * @return p the Newton direction
+     */
     def newton(wArray: Array[Double], gArray: Array[Double]): Array[Double] = {
         val g: DenseMatrix[Double] = new DenseMatrix(this.d, 1, gArray)
         val w: DenseMatrix[Double] = new DenseMatrix(this.d, 1, wArray)

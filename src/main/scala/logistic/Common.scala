@@ -84,11 +84,13 @@ class Driver(sc: SparkContext, n0: Long, d0: Int, m0: Long) {
     def predict(dataTest: RDD[(Double, Array[Double])]): Double = {
         val nTest: Long = dataTest.count
         val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
+        
         val error: Double = dataTest
                             .map(pair => (pair._1, math.signum((pair._2, wBc.value).zipped.map(_ * _).sum.toDouble)))
                             .map(pair => -1.0 * pair._1 * pair._2)
                             .filter(_ > -0.1)
                             .count
+        
         error / nTest.toDouble
     }
 
@@ -121,6 +123,10 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     // specific to training
     var gamma: Double = 0.0
     
+    def setGamma(gamma0: Double): Unit = {
+        this.gamma = gamma0
+    }
+    
     // parameters for CG
     var q: Int = 0 // number of CG iterations
     var isFormHessian: Boolean = false
@@ -136,9 +142,6 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     val stepSizes: Array[Double] = (0 until numStepSizes).toArray.map(1.0 / math.pow(baseStepSizes, _))
     val objValArray = new Array[Double](numStepSizes)
 
-    def setGamma(gamma0: Double): Unit = {
-        this.gamma = gamma0
-    }
 
     /**
      * Compute the sum local gradient of the objective function
