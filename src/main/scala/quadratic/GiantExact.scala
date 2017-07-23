@@ -154,8 +154,7 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
      * @return w solution to the local problem
      */
     def solve(): Array[Double] = {
-        val w: DenseMatrix[Double] = this.invH * this.xy
-        w.toArray
+        (this.invH * this.xy).toArray
     }
 
     /**

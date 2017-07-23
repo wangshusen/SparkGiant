@@ -15,17 +15,34 @@ import scala.math
 
 
 object Utils {
-    def loadLibsvmData(spark: SparkSession, filename: String, numSplits: Int = -1): RDD[(Float, Array[Double])] = {
+    /**
+     * Load data from libsvm format file.
+     *
+     * @param spark SparkSession
+     * @param filename a string of file name
+     * @param numSplits if it is specificed, spark will change the number of partitions
+     * @param isCoalesce if true, use coalesce(); otherwise use repartition()
+     */
+    def loadLibsvmData(spark: SparkSession, filename: String, numSplits: Int = -1, isCoalesce: Boolean = true): RDD[(Float, Array[Double])] = {
         // Loads data
         var rawdata = spark.read.format("libsvm")
                                 .load(filename)
                                 .rdd
+        
         if (numSplits > 0) {
+            // coalesce() avoids a full shuffle, so it is usually faster than repartition().
+            // However, coalesce() may not return the desired number of partitions;
+            // if the data is small, the resulting #partition can be smaller than numSplits.
+            if (isCoalesce) {
+                rawdata = rawdata.coalesce(numSplits)
+            }
+            // repartition() is slower, but it is guaranteed to return exactly numSplits partitions.
+            else {
+                rawdata = rawdata.repartition(numSplits)
+            }
             // note: coalesce can result in data being sent over the network. avoid this for large datasets
-            rawdata = rawdata.coalesce(numSplits)
+            
         }
-        
-        
         
         val labelVectorRdd: RDD[(Float, Array[Double])] = rawdata
                 .map(pair => (pair(0).toString.toFloat, Vectors.parse(pair(1).toString).toArray))

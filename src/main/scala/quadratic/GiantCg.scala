@@ -33,7 +33,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
      * @return objValArray the objective values in each iteration
      * @return timeArray the elapsed times counted at each iteration
      */
-    def train(gamma: Double, maxIter: Int, q: Int): (Array[Double], Array[Double], Array[Double]) = {
+    def train(gamma: Double, maxIter: Int, q: Int, isModelAvg: Boolean = false): (Array[Double], Array[Double], Array[Double]) = {
         // decide whether to form the Hessian matrix
         val s: Double = this.n.toDouble / this.m.toDouble
         val cost1: Double = 2 * q * s // CG without the Hessian formed
@@ -53,10 +53,12 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         println("Driver: executors are setup for training! gamma = " + gamma.toString + ", q = " + q.toString + ", isFormHessian = " + isFormHessian.toString)
         
         // initialize w by model averaging
-        this.w = rddTrain.map(_.solve())
-                        .reduce((a,b) => (a,b).zipped.map(_ + _))
-                        .map(_ / this.n.toDouble)
-        println("Driver: model averaging is done!")
+        if (isModelAvg) {
+            this.w = rddTrain.map(_.solve())
+                            .reduce((a,b) => (a,b).zipped.map(_ + _))
+                            .map(_ / this.n.toDouble)
+            println("Driver: model averaging is done!")
+        }
         
         // record the objectives of each iteration
         val trainErrorArray: Array[Double] = new Array[Double](maxIter)
@@ -163,14 +165,14 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
      * @return approximate solution to the local problem
      */
     def solve(): Array[Double] = {
+        var w: Array[Double] = Array.empty[Double]
         if (this.isFormHessian) {
-            val w: DenseMatrix[Double] = cg.solver2(this.xx, this.xy, this.sDouble * this.gamma, this.q) * this.sDouble
-            return w.toArray
+            w = cg.solver2(this.xx, this.xy, this.sDouble * this.gamma, this.q) 
         }
         else {
-            val w: DenseMatrix[Double] = cg.solver1(this.x, this.xy, this.sDouble * this.gamma, this.q) * this.sDouble
-            return w.toArray
+            w = cg.solver1(this.x, this.xy, this.sDouble * this.gamma, this.q)
         }
+        w.map((a: Double) => a * this.sDouble)
     }
 
     /**
@@ -180,15 +182,15 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
      * @return the local Newton direction scaled by s
      */
     def newton(gArray: Array[Double]): Array[Double] = {
-        val g: DenseMatrix[Double] = new DenseMatrix(this.d, 1, gArray)
+        val g: DenseVector[Double] = new DenseVector(gArray)
+        var p: Array[Double] = Array.empty[Double]
         if (this.isFormHessian) {
-            val p: DenseMatrix[Double] = cg.solver2(this.xx, this.sDouble * g, this.sDouble * this.gamma, this.q) * this.sDouble
-            return p.toArray
+            p = cg.solver2(this.xx, this.sDouble * g, this.sDouble * this.gamma, this.q)
         }
         else {
-            val p: DenseMatrix[Double] = cg.solver1(this.x, this.sDouble * g, this.sDouble * this.gamma, this.q) * this.sDouble
-            return p.toArray
+            p = cg.solver1(this.x, this.sDouble * g, this.sDouble * this.gamma, this.q)
         }
+        p.map((a: Double) => a * this.sDouble)
     }
 }
 

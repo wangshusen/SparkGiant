@@ -8,9 +8,9 @@ import breeze.numerics._
 
 
 class CG(d: Int) {
-    val r: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
-    val p: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
-    val ap: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
+    val r: DenseVector[Double] = DenseVector.zeros[Double](d)
+    val p: DenseVector[Double] = DenseVector.zeros[Double](d)
+    val ap: DenseVector[Double] = DenseVector.zeros[Double](d)
     var cgTol: Double = 1E-20
     
     
@@ -24,9 +24,9 @@ class CG(d: Int) {
      * @param maxiter max number of iterations
      * @return w the solution
      */
-    def solver1(a: DenseMatrix[Double], b: DenseMatrix[Double], lam: Double, maxiter: Int = 20): DenseMatrix[Double] = {
+    def solver1(a: DenseMatrix[Double], b: DenseVector[Double], lam: Double, maxiter: Int = 20): Array[Double] = {
         val tol: Double = this.cgTol * math.sqrt(b.toArray.map(x => x*x).sum)
-        val w: DenseMatrix[Double] = DenseMatrix.zeros[Double](this.d, 1)
+        val w: DenseVector[Double] = DenseVector.zeros[Double](this.d)
         this.r := b //- lam * w - a * (a.t * w)
         this.p := r
         var rsold: Double = this.r.toArray.map(x => x*x).sum
@@ -36,21 +36,21 @@ class CG(d: Int) {
         
         for (q <- 0 until maxiter) {
             this.ap := lam * this.p + a * (a.t * this.p)
-            alpha = rsold / ((this.p :* this.ap).toArray.sum)
+            alpha = rsold / (this.p.t * this.ap)
             w += alpha * this.p
             this.r -= alpha * this.ap
             rsnew = this.r.toArray.map(a => a*a).sum
             rssqrt = math.sqrt(rsnew)
             if (rssqrt < tol) {
                 println("Iter " + q.toString + ": converged! res = " + rssqrt.toString)
-                return w
+                return w.toArray
             }
             this.p *= rsnew / rsold
             this.p += this.r
             rsold = rsnew
         }
         this.cgTol *= 0.5
-        w
+        w.toArray
     }
     
     
@@ -63,10 +63,10 @@ class CG(d: Int) {
      * @param maxiter max number of iterations
      * @return w the solution
      */
-    def solver2(h: DenseMatrix[Double], b: DenseMatrix[Double], lam: Double, maxiter: Int = 20): DenseMatrix[Double] = {
+    def solver2(h: DenseMatrix[Double], b: DenseVector[Double], lam: Double, maxiter: Int = 20): Array[Double] = {
         val d: Int = h.rows
         val tol: Double = this.cgTol * math.sqrt(b.toArray.map(x => x*x).sum)
-        val w: DenseMatrix[Double] = DenseMatrix.zeros[Double](this.d, 1)
+        val w: DenseVector[Double] = DenseVector.zeros[Double](this.d)
         this.r := b //- lam * w - h * w
         this.p := this.r
         var rsold: Double = r.toArray.map(a => a*a).sum
@@ -78,21 +78,21 @@ class CG(d: Int) {
         
         for (q <- 0 until maxiter) {
             this.ap := h * this.p
-            alpha = rsold / ((this.p :* this.ap).toArray.sum)
+            alpha = rsold / (this.p.t * this.ap)
             w += alpha * this.p
             this.r -= alpha * this.ap
             rsnew = this.r.toArray.map(x => x*x).sum
             rssqrt = math.sqrt(rsnew)
             if (rssqrt < tol) {
                 println("Iter " + q.toString + ": converged! res = " + rssqrt.toString)
-                return w
+                return w.toArray
             }
             this.p *= rsnew / rsold
             this.p += this.r
             rsold = rsnew
         }
         this.cgTol *= 0.5
-        w
+        w.toArray
     }
     
 }

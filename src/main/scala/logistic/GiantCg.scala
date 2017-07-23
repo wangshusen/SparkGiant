@@ -156,8 +156,9 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
      * @return p the Newton direction
      */
     def newton(wArray: Array[Double], gArray: Array[Double]): Array[Double] = {
-        val g: DenseMatrix[Double] = new DenseMatrix(this.d, 1, gArray)
-        val w: DenseMatrix[Double] = new DenseMatrix(this.d, 1, wArray)
+        val g: DenseVector[Double] = new DenseVector(gArray)
+        val w: DenseVector[Double] = new DenseVector(wArray)
+        var p: Array[Double] = Array.empty[Double]
         val zexp: Array[Double] = (this.x.t * w).toArray.map((a: Double) => math.exp(a))
         val ddiag: Array[Double] = zexp.map((r: Double) => (math.sqrt(r) / (1.0 + r)))
         for (j <- 0 until this.s) {
@@ -166,13 +167,12 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
         
         if (this.isFormHessian) {
             val aa: DenseMatrix[Double] = this.a * this.a.t
-            val p: DenseMatrix[Double] = cg.solver2(aa, this.sDouble * g, this.sDouble * this.gamma, this.q) * this.sDouble
-            return p.toArray
+            p = cg.solver2(aa, this.sDouble * g, this.sDouble * this.gamma, this.q)
         }
         else {
-            val p: DenseMatrix[Double] = cg.solver1(this.a, this.sDouble * g, this.sDouble * this.gamma, this.q) * this.sDouble
-            return p.toArray
+            p = cg.solver1(this.a, this.sDouble * g, this.sDouble * this.gamma, this.q)
         }
+        p.map((a: Double) => a * this.sDouble)
     }
         
 }

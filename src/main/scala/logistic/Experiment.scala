@@ -26,8 +26,7 @@ object Experiment {
         var gamma: Double = args(2).toDouble
         val maxiter: Int = args(3).toInt
         val q: Int = args(4).toInt
-        
-        
+
         
         // launch Spark
         var t0 = System.nanoTime()
@@ -42,7 +41,7 @@ object Experiment {
         println("Time cost of starting Spark:  " + ((t1-t0)*1e-9).toString + "  seconds.")
         
         // load training data
-        var dataRaw: RDD[(Double, Array[Double])] = Utils.loadLibsvmData(spark, filename, numSplits)
+        var dataRaw: RDD[(Double, Array[Double])] = Utils.loadLibsvmData(spark, filename, numSplits, false)
                                                         .map(pair => (pair._1.toDouble, pair._2))
         
         var dataIdx: RDD[((Double, Array[Double]), Long)] = dataRaw.map(pair => (pair._1 * 2 - 3, pair._2))
@@ -53,6 +52,16 @@ object Experiment {
                                                         .map(pair => pair._1)
         var dataTest: RDD[(Double, Array[Double])] = dataIdx.filter(pair => (pair._2 % 5 == 0))
                                                         .map(pair => pair._1)
+        
+        
+        println("####################################")
+        println("spark.conf.getAll:")
+        spark.conf.getAll.foreach(println)
+        println(" ")
+        println("getExecutorMemoryStatus:")
+        println(sc.getExecutorMemoryStatus.toString())
+        println("####################################")
+        println(" ")
         
         val samples = data.take(10).map(pair => pair._1.toString + ",  " + pair._2.mkString(" ")).foreach(println)
         

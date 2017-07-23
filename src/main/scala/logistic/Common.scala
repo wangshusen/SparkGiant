@@ -155,9 +155,9 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
      * @return the local objective values as an array
      */
     def objFunVal(wArray: Array[Double], pArray: Array[Double]): Array[Double] = {
-        val w: DenseMatrix[Double] = new DenseMatrix(this.d, 1, wArray)
-        val p: DenseMatrix[Double] = new DenseMatrix(this.d, 1, pArray)
-        var wTmp: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, 1)
+        val w: DenseVector[Double] = new DenseVector(wArray)
+        val p: DenseVector[Double] = new DenseVector(pArray)
+        var wTmp: DenseVector[Double] = DenseVector.zeros[Double](d)
         
         for (idx <- 0 until this.numStepSizes) {
             wTmp := w - this.stepSizes(idx) * p
@@ -171,10 +171,8 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     }
 
     /**
-     * Compute the sum local gradient of the objective function
-     *      f_j (w) = log (1 + exp(-z_j)) + 0.5*gamma*||w||_2^2, 
-     *      where z_j = <x_j, w>.
-     * As by-products, also compute the training error and objective value.
+     * Compute the local gradient of the objective function.
+     * As by-products, the training error and objective value are also computed.
      *
      * @param w the current solution
      * @return g sum of the gradients of f_j (w) for all the local data.
@@ -182,25 +180,26 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
      * @return objVal sum of f_j (2) for all the local data.
      */
     def grad(wArray: Array[Double]): (Array[Double], Double, Double) = {
-        val w: DenseMatrix[Double] = new DenseMatrix(this.d, 1, wArray)
+        val w: DenseVector[Double] = new DenseVector(wArray)
         val z: Array[Double] = (this.x.t * w).toArray
         val zexp: Array[Double] = z.map((a: Double) => math.exp(a))
+        val sgamma: Double = this.s * this.gamma
         
         // gradient
-        val c: DenseMatrix[Double] = new DenseMatrix(this.s, 1, zexp.map((a: Double) => -1.0 / (1.0 + a)))
-        val g: Array[Double] = (this.x * c + (this.s * this.gamma) * w).toArray
+        val c: DenseVector[Double] = new DenseVector(zexp.map((a: Double) => -1.0 / (1.0 + a)))
+        val g: Array[Double] = (this.x * c + sgamma * w).toArray
         
         // objective function value
         val loss: Double = zexp.map((a: Double) => math.log(1.0 + 1.0 / a)).sum
         val wNorm: Double = wArray.map(a => a*a).sum
-        val objVal: Double = loss + this.s * this.gamma * wNorm * 0.5
+        val objVal: Double = loss + sgamma * wNorm * 0.5
         
         // training error
         val pred: Array[Double] = z.map((a: Double) => math.signum(a))
         val trainError: Double = z.filter(_ < 1E-30).length.toDouble
         
-        val gNorm: Double = g.map(a => a / this.s.toDouble).map(a => a*a).sum
-        println("Executor: squared norm of gradient is " + gNorm.toString)
+        //val gNorm: Double = g.map(a => a * this.sInv).map(a => a*a).sum
+        //println("Executor: squared norm of gradient is " + gNorm.toString)
         
         (g, trainError, objVal)
     }
@@ -213,10 +212,10 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
      * where z_j = <x_j, w>.
      *
      * @param learningrate learning rate (step size) of gradient descent
-     * @param q maximum number of iterations
+     * @param maxiter maximum number of iterations
      * @return w the trained model
      */
-    def solve(learningrate: Double, q: Int): Array[Double] = {
-        distopt.utils.Logistic.svrgSolver(this.x, this.gamma, learningrate, q).map(_ * this.sDouble)
+    def solve(learningrate: Double, maxiter: Int): Array[Double] = {
+        distopt.utils.Logistic.svrgSolver(this.x, this.gamma, learningrate, maxiter).map(_ * this.sDouble)
     }
 }

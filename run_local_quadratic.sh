@@ -3,7 +3,7 @@
 PROJ_HOME="$HOME/Code/SparkGiant"
 SPARK_HOME="$HOME/local/spark-2.1.1"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
-NUM_SPLITS="128"
+NUM_SPLITS="16"
 MASTER="local["$NUM_SPLITS"]"
 
 DATA_FILE="$PROJ_HOME/data/YearPredictionMSD"
