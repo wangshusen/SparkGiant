@@ -23,7 +23,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         extends distopt.logistic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
     // initialize executors
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
-    println("There are " + rdd.count.toString + " executors.")
+    println("There are " + rdd.count.toString + " partition.")
     println("Driver: executors are initialized using the input data!")
 
     /**
@@ -44,8 +44,6 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         var isFormHessian: Boolean = if(cost1 < cost2) false else true
         
         val t0: Double = System.nanoTime()
-        
-        isFormHessian = true
         
         // setup the executors for training
         val rddTrain: RDD[Executor] = this.rdd

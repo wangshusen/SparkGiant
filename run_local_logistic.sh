@@ -14,6 +14,7 @@ $SPARK_HOME/bin/spark-submit \
     --driver-memory 8G \
     --executor-cores 1 \
     --executor-memory 8G \
+    --num-executors $NUM_SPLITS \
     $JAR_FILE $DATA_FILE $NUM_SPLITS 1E-7 20 100 \
     > result.out
   

@@ -36,12 +36,12 @@ object Experiment {
                       .config("spark.some.config.option", "some-value")
                       .getOrCreate())
         val sc = spark.sparkContext
-        //sc.setLogLevel("ERROR")
+        sc.setLogLevel("ERROR")
         var t1 = System.nanoTime()
         println("Time cost of starting Spark:  " + ((t1-t0)*1e-9).toString + "  seconds.")
         
         // load training data
-        var dataRaw: RDD[(Double, Array[Double])] = Utils.loadLibsvmData(spark, filename, numSplits, false)
+        var dataRaw: RDD[(Double, Array[Double])] = Utils.loadLibsvmData(spark, filename, numSplits, true)
                                                         .map(pair => (pair._1.toDouble, pair._2))
         
         var dataIdx: RDD[((Double, Array[Double]), Long)] = dataRaw.map(pair => (pair._1 * 2 - 3, pair._2))
