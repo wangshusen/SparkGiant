@@ -20,8 +20,7 @@ ulimit -s unlimited
 start-all.sh
 
 spark-submit \
-    --class "distopt.logistic.Experiment" \
-    --num-executors $NUM_SPLITS \
+    --class "distopt.logistic.ExperimentRfm" \
     $JAR_FILE $DATA_FILE $NUM_SPLITS 1E-6 30 100
   
 stop-all.sh
