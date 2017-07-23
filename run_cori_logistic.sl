@@ -12,7 +12,7 @@ PROJ_HOME="$SCRATCH/SparkGiant"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 DATA_FILE="$PROJ_HOME/data/covtype"
 
-NUM_SPLITS="256"
+NUM_SPLITS="17"
 
 module load python/3.5-anaconda
 module load spark
@@ -20,7 +20,7 @@ ulimit -s unlimited
 start-all.sh
 
 spark-submit \
-    --class "distopt.logistic.Experiment" \
+    --class "distopt.logistic.ExperimentRfm" \
     $JAR_FILE $DATA_FILE $NUM_SPLITS 1E-3 30 100
   
 stop-all.sh
