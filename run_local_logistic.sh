@@ -9,7 +9,7 @@ MASTER="local["$NUM_SPLITS"]"
 DATA_FILE="$PROJ_HOME/data/covtype_perm"
 
 $SPARK_HOME/bin/spark-submit \
-    --class "distopt.logistic.ExperimentRfm" \
+    --class "distopt.logistic.Experiment" \
     --master $MASTER \
     --driver-memory 8G \
     --executor-cores 1 \

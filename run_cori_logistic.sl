@@ -21,6 +21,6 @@ start-all.sh
 
 spark-submit \
     --class "distopt.logistic.Experiment" \
-    $JAR_FILE $DATA_FILE $NUM_SPLITS 1E-3 30 100
+    $JAR_FILE $DATA_FILE $NUM_SPLITS 1E-6 30 100
   
 stop-all.sh

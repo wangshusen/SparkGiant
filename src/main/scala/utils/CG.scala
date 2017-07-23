@@ -36,7 +36,9 @@ class CG(d: Int) {
         
         for (q <- 0 until maxiter) {
             this.ap := lam * this.p + a * (a.t * this.p)
-            alpha = rsold / (this.p.t * this.ap)
+            var pap: Double = 0.0
+            for (j <- 0 until d) pap += this.p(j) * this.ap(j)
+            alpha = rsold / pap
             w += alpha * this.p
             this.r -= alpha * this.ap
             rsnew = this.r.toArray.map(a => a*a).sum
@@ -78,7 +80,9 @@ class CG(d: Int) {
         
         for (q <- 0 until maxiter) {
             this.ap := h * this.p
-            alpha = rsold / (this.p.t * this.ap)
+            var pap: Double = 0.0
+            for (j <- 0 until d) pap += this.p(j) * this.ap(j)
+            alpha = rsold / pap
             w += alpha * this.p
             this.r -= alpha * this.ap
             rsnew = this.r.toArray.map(x => x*x).sum
