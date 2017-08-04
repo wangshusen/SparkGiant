@@ -168,6 +168,7 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
     }
             
     def svrg(wArray: Array[Double], gArray: Array[Double]): Array[Double] = {
+        // parameters that can be tuned
         val sizeBatch: Int = 128
         val invSizeBatch: Double = -1.0 / sizeBatch
         val numInnerLoop: Int = math.floor(this.s / sizeBatch).toInt
@@ -175,12 +176,11 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
         
         // compute LocalGradient minus FullGradient
         val wt: DenseVector[Double] = new DenseVector(wArray)
-        val zexp: Array[Double] = (this.x.t * wt).toArray.map((a: Double) => math.exp(a))
+        val z: DenseVector[Double] = this.x.t * wt
+        val zexp: Array[Double] = z.toArray.map((a: Double) => math.exp(a))
         val c: DenseVector[Double] = new DenseVector(zexp.map((a: Double) => -1.0 / (1.0 + a)))
         val gDiff: DenseVector[Double] = (this.x * c) * this.sInv + this.gamma * wt // local gradient
-        for (i <- 0 until this.d) {
-            gDiff(i) -= gArray(i)
-        }
+        for (i <- 0 until this.d) gDiff(i) -= gArray(i)
         
         // Shuffle the columns of X
         val randIndex: List[Int] = scala.util.Random.shuffle((0 until this.s).toList)
@@ -189,44 +189,38 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
             xShuffle(::, j) := this.x(::, randIndex(j))
         }
         
-        
+        // buffers
         val w: DenseVector[Double] = wt.copy
         val wtilde: DenseVector[Double] = DenseVector.zeros[Double](this.d)
-        val z: DenseVector[Double] = DenseVector.zeros[Double](this.s)
-        val xsample: DenseMatrix[Double] = DenseMatrix.zeros[Double](this.d, sizeBatch)
-        val v: DenseVector[Double] = DenseVector.zeros[Double](sizeBatch)
+        val zRand: DenseVector[Double] = DenseVector.zeros[Double](sizeBatch)
+        val cRand: DenseVector[Double] = DenseVector.zeros[Double](sizeBatch)
         val gRand1: DenseVector[Double] = DenseVector.zeros[Double](this.d)
         val gRand2: DenseVector[Double] = DenseVector.zeros[Double](this.d)
         val gRand: DenseVector[Double] = DenseVector.zeros[Double](this.d)
         val gFull: DenseVector[Double] = DenseVector.zeros[Double](this.d)
+        val xsample: DenseMatrix[Double] = DenseMatrix.zeros[Double](this.d, sizeBatch)
         
         
         for (innerIter <- 0 until this.q) {
             wtilde := w
             
-            // full gradient
+            // exact local gradient
             z := this.x.t * wtilde
-            gFull := (invS / (1.0 + math.exp(z(0)))) * this.x(::, 0)
-            for (j <- 1 until this.s) {
-                gFull += (invS / (1.0 + math.exp(z(j)))) * this.x(::, j)
-            }
+            for (i <- 0 until this.s) c(i) = invS / (1.0 + math.exp(z(i)))
+            gFull := this.x * c
             
             for (j <- 0 until numInnerLoop) {
                 xsample := xShuffle(::, j*sizeBatch until (j+1)*sizeBatch)
                 
                 // stochastic gradient at w
-                v := xsample.t * w
-                gRand1 := this.gamma * w - gDiff
-                for (l <- 0 until sizeBatch) {
-                    gRand1 += (invSizeBatch / (1.0 + math.exp(v(l)))) * xsample(::, l)
-                }
+                zRand := xsample.t * w
+                for (i <- 0 until sizeBatch) cRand(i) = invSizeBatch / (1.0 + math.exp(zRand(i)))
+                gRand1 := this.gamma * w - gDiff + xsample * cRand
                 
                 // stochastic gradient at wtilde
-                v := xsample.t * wtilde
-                gRand2 := invSizeBatch / (1.0 + math.exp(v(0))) * xsample(::, 0)
-                for (l <- 1 until sizeBatch) {
-                    gRand2 += (invSizeBatch / (1.0 + math.exp(v(l)))) * xsample(::, l)
-                }
+                zRand := xsample.t * wtilde
+                for (i <- 0 until sizeBatch) cRand(i) = invSizeBatch / (1.0 + math.exp(zRand(i)))
+                gRand2 := xsample * cRand
                 
                 gRand := gRand1 - gRand2 + gFull
                 w -= this.learningRate * gRand
