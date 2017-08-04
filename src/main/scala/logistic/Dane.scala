@@ -1,4 +1,4 @@
-package distopt.logistic.GiantCg
+package distopt.logistic.Dane
 
 // spark-core
 import org.apache.spark.SparkContext
@@ -10,7 +10,7 @@ import breeze.linalg._
 import breeze.numerics._
 
 /**
- * Solve a logistic regression problem using GIANT with the local problems inexactly solved by CG. 
+ * Solve a logistic regression problem using Dane with the local problems inexactly solved by CG. 
  * Objective function is the mean of 
  * f_j (w) = log (1 + exp(-z_j)) + 0.5*gamma*||w||_2^2, 
  * where z_j = <x_j, w>.
@@ -27,32 +27,27 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
     println("Driver: executors are initialized using the input data!")
 
     /**
-     * Train a logistic regression model using GIANT with the local problems solved by fixed number of CG steps.
+     * Train a logistic regression model using Dane with the local problems solved by fixed number of SVRG steps.
      *
      * @param gamma the regularization parameter
      * @param maxIter max number of iterations
      * @param q number of CG iterations
+     * @param learningRate learning rate of SVRG
      * @return trainErrorArray the training error in each iteration
      * @return objValArray the objective values in each iteration
      * @return timeArray the elapsed times counted at each iteration
      */
-    def train(gamma: Double, maxIter: Int, q: Int): (Array[Double], Array[Double], Array[Double]) = {
-        // decide whether to form the Hessian matrix
-        val s: Double = this.n.toDouble / this.m.toDouble
-        val cost1: Double = 4 * q * s // CG without the Hessian formed
-        val cost2: Double = (s + q) * this.d // CG with the Hessian formed
-        var isFormHessian: Boolean = if(cost1 < cost2) false else true
-        
+    def train(gamma: Double, maxIter: Int, q: Int, learningRate: Double): (Array[Double], Array[Double], Array[Double]) = {
         val t0: Double = System.nanoTime()
         
         // setup the executors for training
         val rddTrain: RDD[Executor] = this.rdd
                                     .map(exe => {exe.setGamma(gamma);  
                                                  exe.setLocalMaxIter(q); 
-                                                 exe.setIsFormHessian(isFormHessian);
+                                                 exe.setLearningRate(learningRate);
                                                  exe})
                                     .persist()
-        println("Driver: executors are setup for training! gamma = " + gamma.toString + ", q = " + q.toString + ", isFormHessian = " + isFormHessian.toString)
+        println("Driver: executors are setup for training! gamma = " + gamma.toString + ", q = " + q.toString + ", learningRate = " + learningRate.toString)
         
         
         // initialize w by model averaging
@@ -110,10 +105,10 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         this.trainError = tmp._2 * this.nInv
         this.objVal = tmp._3 * this.nInv
 
-        // compute the averaged Newton direction
-        this.p = rddTrain.map(exe => exe.newton(wBc.value, gBc.value))
+        // compute the averaged descending direction
+        this.p = rddTrain.map(exe => exe.svrg(wBc.value, gBc.value))
                         .reduce((a,b) => (a,b).zipped.map(_ + _)) 
-                        .map(_ * this.nInv)
+                        .map(_ / this.m.toDouble)
         val pBc: Broadcast[Array[Double]] = this.sc.broadcast(this.p)
         
         // search for a step size that leads to sufficient decrease
@@ -145,40 +140,103 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
  */
 class Executor(arr: Array[(Double, Array[Double])]) extends 
         distopt.logistic.Common.Executor(arr) {
-    val cg: distopt.utils.CG = new distopt.utils.CG(this.d)
-    
-    var isFormHessian: Boolean = false
-    def setIsFormHessian(isFormHessian0: Boolean){
-        this.isFormHessian = isFormHessian0
-    }
-    
+    var learningRate: Double = 1.0
+    def setLearningRate(learningRate0: Double){
+        this.learningRate = learningRate0
+    }   
+            
     /**
-     * Compute approximate Newton direction using the local data.
+     * Compute descent direction using the local data.
      *
      * @param wArray the current solution
      * @param gArray the full gradient
-     * @return p the Newton direction
+     * @return p the descent direction
      */
-    def newton(wArray: Array[Double], gArray: Array[Double]): Array[Double] = {
-        val g: DenseVector[Double] = new DenseVector(gArray)
-        val w: DenseVector[Double] = new DenseVector(wArray)
-        var p: Array[Double] = Array.empty[Double]
-        val zexp: Array[Double] = (this.x.t * w).toArray.map((a: Double) => math.exp(a))
-        val ddiag: Array[Double] = zexp.map((r: Double) => (math.sqrt(r) / (1.0 + r)))
-        for (j <- 0 until this.s) {
-            this.a(::, j) := ddiag(j) * this.x(::, j)
+    def svrg0(wArray: Array[Double], gArray: Array[Double]): Array[Double] = {
+        // compute LocalGradient minus FullGradient
+        val wt: DenseVector[Double] = new DenseVector(wArray)
+        val zexp: Array[Double] = (this.x.t * wt).toArray.map((a: Double) => math.exp(a))
+        val c: DenseVector[Double] = new DenseVector(zexp.map((a: Double) => -1.0 / (1.0 + a)))
+        val gDiff: DenseVector[Double] = (this.x * c) * this.sInv + this.gamma * wt // local gradient
+        for (i <- 0 until this.d) {
+            gDiff(i) -= gArray(i)
         }
         
-        if (this.isFormHessian) {
-            val aa: DenseMatrix[Double] = this.a * this.a.t
-            p = cg.solver2(aa, this.sDouble * g, this.sDouble * this.gamma, this.q)
-        }
-        else {
-            p = cg.solver1(this.a, this.sDouble * g, this.sDouble * this.gamma, this.q)
-        }
-        p.map((a: Double) => a * this.sDouble)
+        val w: Array[Double] = distopt.utils.Logistic.daneSvrgSolver(this.x, this.gamma, this.learningRate, this.q, gDiff, wArray)
+        for (j <- 0 until this.d) w(j) = wArray(j) - w(j)
+        w
     }
+            
+    def svrg(wArray: Array[Double], gArray: Array[Double]): Array[Double] = {
+        val sizeBatch: Int = 128
+        val invSizeBatch: Double = -1.0 / sizeBatch
+        val numInnerLoop: Int = math.floor(this.s / sizeBatch).toInt
+        val invS: Double = -1.0 / this.s.toDouble
+        
+        // compute LocalGradient minus FullGradient
+        val wt: DenseVector[Double] = new DenseVector(wArray)
+        val zexp: Array[Double] = (this.x.t * wt).toArray.map((a: Double) => math.exp(a))
+        val c: DenseVector[Double] = new DenseVector(zexp.map((a: Double) => -1.0 / (1.0 + a)))
+        val gDiff: DenseVector[Double] = (this.x * c) * this.sInv + this.gamma * wt // local gradient
+        for (i <- 0 until this.d) {
+            gDiff(i) -= gArray(i)
+        }
+        
+        // Shuffle the columns of X
+        val randIndex: List[Int] = scala.util.Random.shuffle((0 until this.s).toList)
+        val xShuffle: DenseMatrix[Double] = DenseMatrix.zeros[Double](this.d, this.s)
+        for (j <- 0 until this.s) {
+            xShuffle(::, j) := this.x(::, randIndex(j))
+        }
+        
+        
+        val w: DenseVector[Double] = wt.copy
+        val wtilde: DenseVector[Double] = DenseVector.zeros[Double](this.d)
+        val z: DenseVector[Double] = DenseVector.zeros[Double](this.s)
+        val xsample: DenseMatrix[Double] = DenseMatrix.zeros[Double](this.d, sizeBatch)
+        val v: DenseVector[Double] = DenseVector.zeros[Double](sizeBatch)
+        val gRand1: DenseVector[Double] = DenseVector.zeros[Double](this.d)
+        val gRand2: DenseVector[Double] = DenseVector.zeros[Double](this.d)
+        val gRand: DenseVector[Double] = DenseVector.zeros[Double](this.d)
+        val gFull: DenseVector[Double] = DenseVector.zeros[Double](this.d)
+        
+        
+        for (innerIter <- 0 until this.q) {
+            wtilde := w
+            
+            // full gradient
+            z := this.x.t * wtilde
+            gFull := (invS / (1.0 + math.exp(z(0)))) * this.x(::, 0)
+            for (j <- 1 until this.s) {
+                gFull += (invS / (1.0 + math.exp(z(j)))) * this.x(::, j)
+            }
+            
+            for (j <- 0 until numInnerLoop) {
+                xsample := xShuffle(::, j*sizeBatch until (j+1)*sizeBatch)
+                
+                // stochastic gradient at w
+                v := xsample.t * w
+                gRand1 := this.gamma * w - gDiff
+                for (l <- 0 until sizeBatch) {
+                    gRand1 += (invSizeBatch / (1.0 + math.exp(v(l)))) * xsample(::, l)
+                }
+                
+                // stochastic gradient at wtilde
+                v := xsample.t * wtilde
+                gRand2 := invSizeBatch / (1.0 + math.exp(v(0))) * xsample(::, 0)
+                for (l <- 1 until sizeBatch) {
+                    gRand2 += (invSizeBatch / (1.0 + math.exp(v(l)))) * xsample(::, l)
+                }
+                
+                gRand := gRand1 - gRand2 + gFull
+                w -= this.learningRate * gRand
+            }
+        }
+        
+        
+        (wt - w).toArray
+    }
+            
+           
         
 }
-
-

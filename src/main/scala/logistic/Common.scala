@@ -120,20 +120,16 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     val ymax: Double = y.max
     assert(ymax > 0.99 && ymax < 1.01)
 
-    // specific to training
+    // regularization parameter
     var gamma: Double = 0.0
-    
     def setGamma(gamma0: Double): Unit = {
         this.gamma = gamma0
     }
     
-    // parameters for CG
-    var q: Int = 0 // number of CG iterations
-    var isFormHessian: Boolean = false
-            
-    def setParam(q0: Int, isFormHessian0: Boolean){
+    // max iterations of local solver
+    var q: Int = 0 
+    def setLocalMaxIter(q0: Int){
         this.q = q0
-        this.isFormHessian = isFormHessian0
     }
     
     // for line search

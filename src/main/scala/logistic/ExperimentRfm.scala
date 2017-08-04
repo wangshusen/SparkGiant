@@ -17,8 +17,6 @@ object ExperimentRfm {
         val filename: String = args(0).toString
         val numSplits: Int = args(1).toInt
         var gamma: Double = args(2).toDouble
-        val maxiter: Int = args(3).toInt
-        val q: Int = args(4).toInt
         
         // launch Spark
         var t0 = System.nanoTime()
@@ -33,7 +31,8 @@ object ExperimentRfm {
         println("Time cost of starting Spark:  " + ((t1-t0)*1e-9).toString + "  seconds.")
         
         // load training data
-        var dataRaw: RDD[(Double, Array[Double])] = Utils.loadLibsvmData(spark, filename, numSplits, false)
+        val isCoalesce: Boolean = false
+        var dataRaw: RDD[(Double, Array[Double])] = Utils.loadLibsvmData(spark, filename, numSplits, isCoalesce)
                                                         .map(pair => (pair._1.toDouble, pair._2))
         
         // split to train and test
@@ -50,7 +49,7 @@ object ExperimentRfm {
         //println("Estimated sigma is " + sigma.toString)
         
         // map input data to random Fourier features
-        val numFeature: Int = 200
+        val numFeature: Int = 100
         val sigmaCovtype: Double = 3.2
         var dataTrain: RDD[(Double, Array[Double])] = dataRawTrain.mapPartitions(Kernel.rbfRfm(_, numFeature, sigmaCovtype))
         var dataTest: RDD[(Double, Array[Double])] = dataRawTest.mapPartitions(Kernel.rbfRfm(_, numFeature, sigmaCovtype))
@@ -67,9 +66,18 @@ object ExperimentRfm {
         
         
         // GIANT
-        val isSearch: Boolean = true
+        var maxIterOuter: Int = 10
+        var maxIterInner: Int = 100
+        var isSearch: Boolean = true
         var giant: GiantCg.Driver = new GiantCg.Driver(sc, dataTrain, isSearch)
-        trainTestGiant(gamma, maxiter, q, giant, dataTest)
+        trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
+        
+        // DANE
+        isSearch = true
+        var learningrate: Double = 10.0
+        var dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
+        trainTestDane(gamma, maxIterOuter, maxIterInner, learningrate, dane, dataTest)
+        
         
         spark.stop()
     }
@@ -96,6 +104,34 @@ object ExperimentRfm {
         results._3.foreach(println)
         
         val testError: Double = giant.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+    }
+    
+    /**
+     * @param gamma regularization parameter
+     * @param maxiter max number of iterations (outer loop)
+     * @param q max number of iterations (inner loop)
+     * @param learningrate learning rate
+     * @param dane Dane object
+     * @param dataTest RDD of test label-vector pairs
+     */
+    def trainTestDane(gamma: Double, maxiter: Int, q: Int, learningrate: Double, dane: Dane.Driver, dataTest: RDD[(Double, Array[Double])]): Unit = {
+        val results = dane.train(gamma, maxiter, q, learningrate)
+        println("\n ")
+        println("DANE: ")
+        println("\n ")
+        println("Objective values are ")
+        results._2.foreach(println)
+        println("\n ")
+        println("Training errors are ")
+        results._1.foreach(println)
+        println("\n ")
+        println("Elapsed times are ")
+        results._3.foreach(println)
+        
+        val testError: Double = dane.predict(dataTest)
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
