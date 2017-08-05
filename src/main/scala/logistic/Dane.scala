@@ -10,7 +10,7 @@ import breeze.linalg._
 import breeze.numerics._
 
 /**
- * Solve a logistic regression problem using Dane with the local problems inexactly solved by CG. 
+ * Solve a logistic regression problem using Dane with the local problems inexactly solved by SVRG. 
  * Objective function is the mean of 
  * f_j (w) = log (1 + exp(-z_j)) + 0.5*gamma*||w||_2^2, 
  * where z_j = <x_j, w>.
@@ -18,13 +18,14 @@ import breeze.numerics._
  * @param sc SparkContext
  * @param data RDD of (label, feature)
  * @param isSearch is true if line search is used to determine the step size; otherwise use 1.0 as step size
+ * @param isModelAvg is true if model averaging is used to initialize w
  */
 class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boolean = false, isModelAvg: Boolean = false)
         extends distopt.logistic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
     // initialize executors
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
-    println("There are " + rdd.count.toString + " partition.")
-    println("Driver: executors are initialized using the input data!")
+    //println("There are " + rdd.count.toString + " partition.")
+    //println("Driver: executors are initialized using the input data!")
 
     /**
      * Train a logistic regression model using Dane with the local problems solved by fixed number of SVRG steps.
@@ -47,13 +48,12 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
                                                  exe.setLearningRate(learningRate);
                                                  exe})
                                     .persist()
-        println("Driver: executors are setup for training! gamma = " + gamma.toString + ", q = " + q.toString + ", learningRate = " + learningRate.toString)
+        //println("Driver: executors are setup for training! gamma = " + gamma.toString + ", q = " + q.toString + ", learningRate = " + learningRate.toString)
         
         
         // initialize w by model averaging
         if (isModelAvg) {
-            val svrgLearningRate: Double = 1.0
-            this.w = rddTrain.map(_.solve(svrgLearningRate, q))
+            this.w = rddTrain.map(_.solve(learningRate, q))
                             .reduce((a,b) => (a,b).zipped.map(_ + _))
                             .map(_ * this.nInv)
             println("Driver: model averaging is done!")
@@ -78,7 +78,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         (trainErrorArray, objValArray, timeArray.map(time => time*1.0E-9))
     }
 
-    /* Take one approximate Newton step.
+    /* Take one approximate Dane descent step.
      *
      * Update:
      *  1. this.w
@@ -98,8 +98,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         this.g = tmp._1.map(_ * this.nInv)
         val gBc: Broadcast[Array[Double]] = this.sc.broadcast(this.g)
         
-        val gNorm: Double = g.map(a => a*a).sum
-        println("Driver: squared norm of gradient is " + gNorm.toString)
+        //val gNorm: Double = g.map(a => a*a).sum
+        //println("Driver: squared norm of gradient is " + gNorm.toString)
         
         // update the training error and objective value
         this.trainError = tmp._2 * this.nInv
@@ -123,7 +123,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
             var pg: Double = 0.0
             for (j <- 0 until this.d) pg += this.p(j) * this.g(j)
             eta = this.lineSearch(objVals, -0.1 * pg)
-            println("Eta = " + eta.toString)
+            //println("Eta = " + eta.toString)
         } 
         
         // take approximate Newton step
@@ -151,22 +151,7 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
      * @param wArray the current solution
      * @param gArray the full gradient
      * @return p the descent direction
-     */
-    def svrg0(wArray: Array[Double], gArray: Array[Double]): Array[Double] = {
-        // compute LocalGradient minus FullGradient
-        val wt: DenseVector[Double] = new DenseVector(wArray)
-        val zexp: Array[Double] = (this.x.t * wt).toArray.map((a: Double) => math.exp(a))
-        val c: DenseVector[Double] = new DenseVector(zexp.map((a: Double) => -1.0 / (1.0 + a)))
-        val gDiff: DenseVector[Double] = (this.x * c) * this.sInv + this.gamma * wt // local gradient
-        for (i <- 0 until this.d) {
-            gDiff(i) -= gArray(i)
-        }
-        
-        val w: Array[Double] = distopt.utils.Logistic.daneSvrgSolver(this.x, this.gamma, this.learningRate, this.q, gDiff, wArray)
-        for (j <- 0 until this.d) w(j) = wArray(j) - w(j)
-        w
-    }
-            
+     */ 
     def svrg(wArray: Array[Double], gArray: Array[Double]): Array[Double] = {
         // parameters that can be tuned
         val sizeBatch: Int = 128
@@ -175,11 +160,11 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
         val invS: Double = -1.0 / this.s.toDouble
         
         // compute LocalGradient minus FullGradient
-        val wt: DenseVector[Double] = new DenseVector(wArray)
-        val z: DenseVector[Double] = this.x.t * wt
+        val wold: DenseVector[Double] = new DenseVector(wArray)
+        val z: DenseVector[Double] = this.x.t * wold
         val zexp: Array[Double] = z.toArray.map((a: Double) => math.exp(a))
         val c: DenseVector[Double] = new DenseVector(zexp.map((a: Double) => -1.0 / (1.0 + a)))
-        val gDiff: DenseVector[Double] = (this.x * c) * this.sInv + this.gamma * wt // local gradient
+        val gDiff: DenseVector[Double] = (this.x * c) * this.sInv + this.gamma * wold // local gradient
         for (i <- 0 until this.d) gDiff(i) -= gArray(i)
         
         // Shuffle the columns of X
@@ -190,14 +175,12 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
         }
         
         // buffers
-        val w: DenseVector[Double] = wt.copy
+        val w: DenseVector[Double] = wold.copy
         val wtilde: DenseVector[Double] = DenseVector.zeros[Double](this.d)
         val zRand: DenseVector[Double] = DenseVector.zeros[Double](sizeBatch)
         val cRand: DenseVector[Double] = DenseVector.zeros[Double](sizeBatch)
-        val gRand1: DenseVector[Double] = DenseVector.zeros[Double](this.d)
-        val gRand2: DenseVector[Double] = DenseVector.zeros[Double](this.d)
         val gRand: DenseVector[Double] = DenseVector.zeros[Double](this.d)
-        val gFull: DenseVector[Double] = DenseVector.zeros[Double](this.d)
+        val gExact: DenseVector[Double] = DenseVector.zeros[Double](this.d)
         val xsample: DenseMatrix[Double] = DenseMatrix.zeros[Double](this.d, sizeBatch)
         
         
@@ -205,30 +188,30 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
             wtilde := w
             
             // exact local gradient
-            z := this.x.t * wtilde
+            z := xShuffle.t * wtilde
             for (i <- 0 until this.s) c(i) = invS / (1.0 + math.exp(z(i)))
-            gFull := this.x * c
+            gExact := xShuffle * c
             
             for (j <- 0 until numInnerLoop) {
                 xsample := xShuffle(::, j*sizeBatch until (j+1)*sizeBatch)
+                gRand := gExact
                 
                 // stochastic gradient at w
                 zRand := xsample.t * w
                 for (i <- 0 until sizeBatch) cRand(i) = invSizeBatch / (1.0 + math.exp(zRand(i)))
-                gRand1 := this.gamma * w - gDiff + xsample * cRand
+                gRand += this.gamma * w - gDiff + xsample * cRand
                 
                 // stochastic gradient at wtilde
                 zRand := xsample.t * wtilde
                 for (i <- 0 until sizeBatch) cRand(i) = invSizeBatch / (1.0 + math.exp(zRand(i)))
-                gRand2 := xsample * cRand
+                gRand -= xsample * cRand
                 
-                gRand := gRand1 - gRand2 + gFull
+                // update w
                 w -= this.learningRate * gRand
             }
         }
         
-        
-        (wt - w).toArray
+        (wold - w).toArray
     }
             
            

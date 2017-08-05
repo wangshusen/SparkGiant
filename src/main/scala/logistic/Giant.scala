@@ -1,4 +1,4 @@
-package distopt.logistic.GiantCg
+package distopt.logistic.Giant
 
 // spark-core
 import org.apache.spark.SparkContext
@@ -18,13 +18,14 @@ import breeze.numerics._
  * @param sc SparkContext
  * @param data RDD of (label, feature)
  * @param isSearch is true if line search is used to determine the step size; otherwise use 1.0 as step size
+ * @param isModelAvg is true if model averaging is used to initialize w
  */
 class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boolean = false, isModelAvg: Boolean = false)
         extends distopt.logistic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
     // initialize executors
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
-    println("There are " + rdd.count.toString + " partition.")
-    println("Driver: executors are initialized using the input data!")
+    //println("There are " + rdd.count.toString + " partition.")
+    //println("Driver: executors are initialized using the input data!")
 
     /**
      * Train a logistic regression model using GIANT with the local problems solved by fixed number of CG steps.
@@ -52,7 +53,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
                                                  exe.setIsFormHessian(isFormHessian);
                                                  exe})
                                     .persist()
-        println("Driver: executors are setup for training! gamma = " + gamma.toString + ", q = " + q.toString + ", isFormHessian = " + isFormHessian.toString)
+        //println("Driver: executors are setup for training! gamma = " + gamma.toString + ", q = " + q.toString + ", isFormHessian = " + isFormHessian.toString)
         
         
         // initialize w by model averaging
@@ -103,8 +104,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         this.g = tmp._1.map(_ * this.nInv)
         val gBc: Broadcast[Array[Double]] = this.sc.broadcast(this.g)
         
-        val gNorm: Double = g.map(a => a*a).sum
-        println("Driver: squared norm of gradient is " + gNorm.toString)
+        //val gNorm: Double = g.map(a => a*a).sum
+        //println("Driver: squared norm of gradient is " + gNorm.toString)
         
         // update the training error and objective value
         this.trainError = tmp._2 * this.nInv
@@ -128,7 +129,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
             var pg: Double = 0.0
             for (j <- 0 until this.d) pg += this.p(j) * this.g(j)
             eta = this.lineSearch(objVals, -0.1 * pg)
-            println("Eta = " + eta.toString)
+            //println("Eta = " + eta.toString)
         } 
         
         // take approximate Newton step

@@ -112,7 +112,7 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     val sDouble: Double = s.toDouble
     val sInv: Double = 1.0 / sDouble
     
-    println("Executor: holding " + s.toString + " samples.")
+    //println("Executor: holding " + s.toString + " samples.")
     
     // make sure y has {+1, -1} values
     val ymin: Double = y.min
