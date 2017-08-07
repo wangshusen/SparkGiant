@@ -116,18 +116,15 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         val wBc: Broadcast[Array[Array[Double]]] = this.sc.broadcast(this.wArrays)
         val rhoBc: Broadcast[Double] = this.sc.broadcast(this.rho)
         
-        // update the training error and objective value
-        var tmp: (Double, Double) = rddTrain.map(exe => exe.grad(uBc.value))
-                                        .map(tuple => (tuple._2, tuple._3))
-                                        .reduce((a, b) => (a._1+b._1, a._2+b._2))
-        this.trainError = tmp._1 * this.nInv
-        this.objVal = tmp._2 * this.nInv
-        
         // update w
-        this.wArrays = rddTrain.map(exe => exe.updateW(aBc.value, uBc.value, wBc.value, rhoBc.value))
-                        .collect
+        val tmp: Array[(Int, Array[Double], Double, Double)] = rddTrain.map(exe => exe.updateW(aBc.value, uBc.value, wBc.value, rhoBc.value)).collect
+        this.wArrays = tmp.map(tuple => (tuple._1, tuple._2))
                         .sortWith(_._1 < _._1)
                         .map((pair: (Int, Array[Double])) => pair._2)
+        
+        // update the objective value and training error
+        this.objVal = (tmp.map(tuple => tuple._3).sum) * this.nInv
+        this.trainError = (tmp.map(tuple => tuple._4).sum) * this.nInv
         
         // update u (locally)
         val normalizer: Double = this.rho / (this.gamma + this.rho)
@@ -142,7 +139,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
             }
         }
         
-        //if (this.rho < 100 * this.gamma) this.rho *= 1.1
+        //if (this.rho < 1E4 * this.gamma) this.rho *= 1.1
     }
     
     def arrayAdd(arr1: Array[Double], arr2: Array[Double]): Array[Double] = {
@@ -171,20 +168,32 @@ class Executor(arr: Array[(Double, Array[Double])], idx: Long) extends
          
     /**
      * Locally update w_i.
+     * As by-products, compute the objective value and training error.
      *
      * @param aArrays the dual variables
      * @param uArray slack variable
      * @param wArrays the primal variables
      * @param rho augmented Lagrangian parameter
-     * @return the (index, primal variable) pair
+     * @return the (index, primal variable, objective value, training error) tuple
      */    
-    def updateW(aArrays: Array[Array[Double]], uArray: Array[Double], wArrays: Array[Array[Double]], rho: Double): (Int, Array[Double]) = {
+    def updateW(aArrays: Array[Array[Double]], uArray: Array[Double], wArrays: Array[Array[Double]], rho: Double): (Int, Array[Double], Double, Double) = {
         val a: DenseVector[Double] = new DenseVector(aArrays(this.index))
         val wold: DenseVector[Double] = new DenseVector(wArrays(this.index))
-        val diff: DenseVector[Double] = rho * (a - wold)
+        val u: DenseVector[Double] = new DenseVector(uArray)
+        val diff: DenseVector[Double] = rho * (a - u)
         
+        // compute objective value and training error
+        val z: Array[Double] = (this.x.t * u).toArray
+        val zexp: Array[Double] = z.map((a: Double) => math.exp(a))
+        val loss: Double = zexp.map((a: Double) => math.log(1.0 + 1.0 / a)).sum
+        val uNorm: Double = uArray.map(a => a*a).sum
+        val objVal: Double = loss + this.s * this.gamma * uNorm * 0.5
+        val pred: Array[Double] = z.map((a: Double) => math.signum(a))
+        val trainError: Double = z.filter(_ < 1E-30).length.toDouble
+        
+        // update W
         val wnew: Array[Double] = this.svrg(wold, diff, rho)
-        (this.index, wnew)
+        (this.index, wnew, objVal, trainError)
     }
     
             
