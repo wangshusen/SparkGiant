@@ -65,28 +65,49 @@ object ExperimentRfm {
         println(" ")
         
         
-        // GIANT
+        /* ------------------- GIANT ------------------- */
         var isSearch: Boolean = true
-        var giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
+        val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
         
-        var maxIterOuter: Int = 10
+        var maxIterOuter: Int = 20
         var maxIterInner: Int = 100
         trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
         
-        // DANE
-        isSearch = true
-        var dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
         
+        /* ------------------- DANE ------------------- */
+        /*
+        isSearch = true
+        val dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
+        
+        maxIterOuter = 10
+        maxIterInner = 100
         var learningrate: Double = 10.0
         trainTestDane(gamma, maxIterOuter, maxIterInner, learningrate, dane, dataTest)
+        */
         
-        // Accelerated gradient descent
-        var agd: Agd.Driver = new Agd.Driver(sc, dataTrain)
+        /* ------- Accelerated gradient descent ------- */
+        /*
+        val agd: Agd.Driver = new Agd.Driver(sc, dataTrain)
+        
         maxIterOuter = 500
         learningrate = 10.0
         var momentum: Double = 0.5
-        trainTestDane(gamma, maxIterOuter, learningrate, momentum, agd, dataTest)
+        trainTestAgd(gamma, maxIterOuter, learningrate, momentum, agd, dataTest)
         
+        maxIterOuter = 500
+        learningrate = 10.0
+        momentum = 0.9
+        trainTestAgd(gamma, maxIterOuter, learningrate, momentum, agd, dataTest)
+        */
+        
+        /* ------------------- ADMM ------------------- */
+        val admm: Admm.Driver = new Admm.Driver(sc, dataTrain)
+        
+        maxIterOuter = 50
+        maxIterInner = 100
+        //learningrate = 10.0
+        var learningrate: Double = 10.0
+        trainTestAdmm(gamma, maxIterOuter, maxIterInner, learningrate, admm, dataTest)
         
         spark.stop()
     }
@@ -101,7 +122,7 @@ object ExperimentRfm {
     def trainTestGiant(gamma: Double, maxiter: Int, q: Int, giant: Giant.Driver, dataTest: RDD[(Double, Array[Double])]): Unit = {
         val results = giant.train(gamma, maxiter, q)
         println("\n ")
-        println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxiter.toString + ", MaxIterInner=" + q.toString)
+        println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxiter.toString + ", MaxIterInner=" + q.toString + ")")
         println("\n ")
         println("Objective values are ")
         results._2.foreach(println)
@@ -129,7 +150,7 @@ object ExperimentRfm {
     def trainTestDane(gamma: Double, maxiter: Int, q: Int, learningrate: Double, dane: Dane.Driver, dataTest: RDD[(Double, Array[Double])]): Unit = {
         val results = dane.train(gamma, maxiter, q, learningrate)
         println("\n ")
-        println("DANE (gamma=" + gamma.toString + ", MaxIterOuter=" + maxiter.toString + ", MaxIterInner=" + q.toString + ", LearningRate=" + learningrate.toString)
+        println("DANE (gamma=" + gamma.toString + ", MaxIterOuter=" + maxiter.toString + ", MaxIterInner=" + q.toString + ", LearningRate=" + learningrate.toString + ")")
         println("\n ")
         println("Objective values are ")
         results._2.foreach(println)
@@ -155,10 +176,10 @@ object ExperimentRfm {
      * @param agd Agd object
      * @param dataTest RDD of test label-vector pairs
      */
-    def trainTestDane(gamma: Double, maxiter: Int, learningrate: Double, momentum: Double, agd: Agd.Driver, dataTest: RDD[(Double, Array[Double])]): Unit = {
+    def trainTestAgd(gamma: Double, maxiter: Int, learningrate: Double, momentum: Double, agd: Agd.Driver, dataTest: RDD[(Double, Array[Double])]): Unit = {
         val results = agd.train(gamma, maxiter, learningrate, momentum)
         println("\n ")
-        println("Accelerated Gradient Descent (gamma=" + gamma.toString + ", MaxIterOuter=" + maxiter.toString+ ", LearningRate=" + learningrate.toString + ", momentum=" + momentum.toString )
+        println("Accelerated Gradient Descent (gamma=" + gamma.toString + ", MaxIterOuter=" + maxiter.toString+ ", LearningRate=" + learningrate.toString + ", momentum=" + momentum.toString + ")")
         println("\n ")
         println("Objective values are ")
         results._2.foreach(println)
@@ -170,6 +191,35 @@ object ExperimentRfm {
         results._3.foreach(println)
         
         val testError: Double = agd.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+    }
+    
+    
+    /**
+     * @param gamma regularization parameter
+     * @param maxiter max number of iterations (outer loop)
+     * @param q max number of iterations (inner loop)
+     * @param learningrate learning rate
+     * @param admm Admm object
+     * @param dataTest RDD of test label-vector pairs
+     */
+    def trainTestAdmm(gamma: Double, maxiter: Int, q: Int, learningrate: Double, admm: Admm.Driver, dataTest: RDD[(Double, Array[Double])]): Unit = {
+        val results = admm.train(gamma, maxiter, q, learningrate)
+        println("\n ")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxiter.toString + ", MaxIterInner=" + q.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("\n ")
+        println("Objective values are ")
+        results._2.foreach(println)
+        println("\n ")
+        println("Training errors are ")
+        results._1.foreach(println)
+        println("\n ")
+        println("Elapsed times are ")
+        results._3.foreach(println)
+        
+        val testError: Double = admm.predict(dataTest)
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")

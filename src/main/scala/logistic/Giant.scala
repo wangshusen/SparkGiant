@@ -65,6 +65,9 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
             println("Driver: model averaging is done!")
             
         }
+        else {
+            for (j <- 0 until this.d) this.w(j) = 0.0
+        }
         
         // record the objectives of each iteration
         val trainErrorArray: Array[Double] = new Array[Double](maxIter)
