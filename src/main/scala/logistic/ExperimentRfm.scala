@@ -102,13 +102,13 @@ object ExperimentRfm {
         println("#######################################################################")
         println("Regularization parameter gamma = " + gamma.toString)
         println("#######################################################################")
-        trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
+        //trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
         
         gamma = 1E-10
         println("#######################################################################")
         println("Regularization parameter gamma = " + gamma.toString)
         println("#######################################################################")
-        trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
+        //trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
     }
     
     def compare(gamma: Double, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])], sc: SparkContext): Unit = {
@@ -123,17 +123,17 @@ object ExperimentRfm {
         
         maxIterOuter = 1000
         learningrate = 10.0
-        
+        /*
         momentum = 0.5
         trainTestAgd(gamma, maxIterOuter, learningrate, momentum, agd, dataTest)
         
         momentum = 0.9
         trainTestAgd(gamma, maxIterOuter, learningrate, momentum, agd, dataTest)
-        
+        */
         momentum = 0.95
         trainTestAgd(gamma, maxIterOuter, learningrate, momentum, agd, dataTest)
         
-        
+        /*
         // --------------------- GIANT --------------------- //
         isSearch = true
         val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
@@ -149,7 +149,7 @@ object ExperimentRfm {
         maxIterOuter = 25
         maxIterInner = 300
         trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
-        
+        */
         
         // --------------------- DANE --------------------- //
         isSearch = true
@@ -157,17 +157,17 @@ object ExperimentRfm {
         
         learningrate = 10.0
         
-        maxIterOuter = 100
-        maxIterInner = 30
-        trainTestDane(gamma, maxIterOuter, maxIterInner, learningrate, dane, dataTest)
+        //maxIterOuter = 100
+        //maxIterInner = 30
+        //trainTestDane(gamma, maxIterOuter, maxIterInner, learningrate, dane, dataTest)
         
         maxIterOuter = 50
         maxIterInner = 100
         trainTestDane(gamma, maxIterOuter, maxIterInner, learningrate, dane, dataTest)
         
-        maxIterOuter = 25
-        maxIterInner = 300
-        trainTestDane(gamma, maxIterOuter, maxIterInner, learningrate, dane, dataTest)
+        //maxIterOuter = 25
+        //maxIterInner = 300
+        //trainTestDane(gamma, maxIterOuter, maxIterInner, learningrate, dane, dataTest)
         
         
         // --------------------- ADMM --------------------- //
@@ -175,17 +175,17 @@ object ExperimentRfm {
         
         learningrate = 10.0
         
-        maxIterOuter = 200
-        maxIterInner = 30
-        trainTestAdmm(gamma, maxIterOuter, maxIterInner, learningrate, admm, dataTest)
+        //maxIterOuter = 200
+        //maxIterInner = 30
+        //trainTestAdmm(gamma, maxIterOuter, maxIterInner, learningrate, admm, dataTest)
         
         maxIterOuter = 100
         maxIterInner = 100
         trainTestAdmm(gamma, maxIterOuter, maxIterInner, learningrate, admm, dataTest)
         
-        maxIterOuter = 50
-        maxIterInner = 300
-        trainTestAdmm(gamma, maxIterOuter, maxIterInner, learningrate, admm, dataTest)
+        //maxIterOuter = 50
+        //maxIterInner = 300
+        //trainTestAdmm(gamma, maxIterOuter, maxIterInner, learningrate, admm, dataTest)
         
     }
     
