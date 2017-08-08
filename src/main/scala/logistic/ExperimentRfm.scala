@@ -15,8 +15,12 @@ object ExperimentRfm {
     def main(args: Array[String]) {
         // parse parameters from command line arguments
         val filename: String = args(0).toString
-        val numSplits: Int = args(1).toInt
-        var gamma: Double = args(2).toDouble
+        val numFeatures: Int = args(1).toInt
+        val numSplits: Int = args(2).toInt
+        
+        println("File name: " + filename)
+        println("Number of random features: " + numFeatures.toString)
+        println("Number of splits: " + numSplits.toString)
         
         // launch Spark
         var t0 = System.nanoTime()
@@ -49,10 +53,9 @@ object ExperimentRfm {
         //println("Estimated sigma is " + sigma.toString)
         
         // map input data to random Fourier features
-        val numFeature: Int = 100
         val sigmaCovtype: Double = 3.2
-        var dataTrain: RDD[(Double, Array[Double])] = dataRawTrain.mapPartitions(Kernel.rbfRfm(_, numFeature, sigmaCovtype))
-        var dataTest: RDD[(Double, Array[Double])] = dataRawTest.mapPartitions(Kernel.rbfRfm(_, numFeature, sigmaCovtype))
+        var dataTrain: RDD[(Double, Array[Double])] = dataRawTrain.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaCovtype))
+        var dataTest: RDD[(Double, Array[Double])] = dataRawTest.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaCovtype))
         
         
         println("####################################")
@@ -65,51 +68,117 @@ object ExperimentRfm {
         println(" ")
         
         
-        /* ------------------- GIANT ------------------- */
+        this.determineGamma(dataTrain, dataTest, sc)
+        
+        //var gamma: Double = 1E-6
+        //this.experiment(gamma, dataTrain, dataTest, sc)
+        
+        
+        spark.stop()
+    }
+    
+    def determineGamma(dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])], sc: SparkContext): Unit = {
         var isSearch: Boolean = true
         val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
         
-        var maxIterOuter: Int = 20
-        var maxIterInner: Int = 100
+        val maxIterOuter: Int = 50
+        val maxIterInner: Int = 300
+        
+        var gamma: Double = 1E-8
+        println("#######################################################################")
+        println("Regularization parameter gamma = " + gamma.toString)
+        println("#######################################################################")
         trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
         
+        gamma = 1E-9
+        println("#######################################################################")
+        println("Regularization parameter gamma = " + gamma.toString)
+        println("#######################################################################")
+        trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
         
-        /* ------------------- DANE ------------------- */
-        /*
-        isSearch = true
-        val dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
+        gamma = 1E-10
+        println("#######################################################################")
+        println("Regularization parameter gamma = " + gamma.toString)
+        println("#######################################################################")
+        trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
+    }
+    
+    def compare(gamma: Double, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])], sc: SparkContext): Unit = {
+        var isSearch: Boolean = true
+        var maxIterOuter: Int = 10
+        var maxIterInner: Int = 100
+        var learningrate: Double = 1.0
+        var momentum: Double = 0.5
         
-        maxIterOuter = 10
-        maxIterInner = 100
-        var learningrate: Double = 10.0
-        trainTestDane(gamma, maxIterOuter, maxIterInner, learningrate, dane, dataTest)
-        */
-        
-        /* ------- Accelerated gradient descent ------- */
-        /*
+        // --------- Accelerated gradient descent --------- //
         val agd: Agd.Driver = new Agd.Driver(sc, dataTrain)
         
-        maxIterOuter = 500
+        maxIterOuter = 1000
         learningrate = 10.0
-        var momentum: Double = 0.5
+        
+        momentum = 0.5
         trainTestAgd(gamma, maxIterOuter, learningrate, momentum, agd, dataTest)
         
-        maxIterOuter = 500
-        learningrate = 10.0
         momentum = 0.9
         trainTestAgd(gamma, maxIterOuter, learningrate, momentum, agd, dataTest)
-        */
         
-        /* ------------------- ADMM ------------------- */
-        val admm: Admm.Driver = new Admm.Driver(sc, dataTrain)
+        momentum = 0.95
+        trainTestAgd(gamma, maxIterOuter, learningrate, momentum, agd, dataTest)
+        
+        
+        // --------------------- GIANT --------------------- //
+        isSearch = true
+        val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
+        
+        maxIterOuter = 100
+        maxIterInner = 30
+        trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
         
         maxIterOuter = 50
         maxIterInner = 100
-        //learningrate = 10.0
-        var learningrate: Double = 10.0
+        trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
+        
+        maxIterOuter = 25
+        maxIterInner = 300
+        trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
+        
+        
+        // --------------------- DANE --------------------- //
+        isSearch = true
+        val dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
+        
+        learningrate = 10.0
+        
+        maxIterOuter = 100
+        maxIterInner = 30
+        trainTestDane(gamma, maxIterOuter, maxIterInner, learningrate, dane, dataTest)
+        
+        maxIterOuter = 50
+        maxIterInner = 100
+        trainTestDane(gamma, maxIterOuter, maxIterInner, learningrate, dane, dataTest)
+        
+        maxIterOuter = 25
+        maxIterInner = 300
+        trainTestDane(gamma, maxIterOuter, maxIterInner, learningrate, dane, dataTest)
+        
+        
+        // --------------------- ADMM --------------------- //
+        val admm: Admm.Driver = new Admm.Driver(sc, dataTrain)
+        
+        learningrate = 10.0
+        
+        maxIterOuter = 200
+        maxIterInner = 30
         trainTestAdmm(gamma, maxIterOuter, maxIterInner, learningrate, admm, dataTest)
         
-        spark.stop()
+        maxIterOuter = 100
+        maxIterInner = 100
+        trainTestAdmm(gamma, maxIterOuter, maxIterInner, learningrate, admm, dataTest)
+        
+        maxIterOuter = 50
+        maxIterInner = 300
+        trainTestAdmm(gamma, maxIterOuter, maxIterInner, learningrate, admm, dataTest)
+        
     }
     
     /**
@@ -120,18 +189,14 @@ object ExperimentRfm {
      * @param dataTest RDD of test label-vector pairs
      */
     def trainTestGiant(gamma: Double, maxiter: Int, q: Int, giant: Giant.Driver, dataTest: RDD[(Double, Array[Double])]): Unit = {
-        val results = giant.train(gamma, maxiter, q)
+        val results: (Array[Double], Array[Double], Array[Double]) = giant.train(gamma, maxiter, q)
         println("\n ")
+        println("====================================================================")
         println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxiter.toString + ", MaxIterInner=" + q.toString + ")")
         println("\n ")
-        println("Objective values are ")
-        results._2.foreach(println)
-        println("\n ")
-        println("Training errors are ")
-        results._1.foreach(println)
-        println("\n ")
-        println("Elapsed times are ")
-        results._3.foreach(println)
+        
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
         
         val testError: Double = giant.predict(dataTest)
         println("\n ")
@@ -148,18 +213,14 @@ object ExperimentRfm {
      * @param dataTest RDD of test label-vector pairs
      */
     def trainTestDane(gamma: Double, maxiter: Int, q: Int, learningrate: Double, dane: Dane.Driver, dataTest: RDD[(Double, Array[Double])]): Unit = {
-        val results = dane.train(gamma, maxiter, q, learningrate)
+        val results: (Array[Double], Array[Double], Array[Double]) = dane.train(gamma, maxiter, q, learningrate)
         println("\n ")
+        println("====================================================================")
         println("DANE (gamma=" + gamma.toString + ", MaxIterOuter=" + maxiter.toString + ", MaxIterInner=" + q.toString + ", LearningRate=" + learningrate.toString + ")")
         println("\n ")
-        println("Objective values are ")
-        results._2.foreach(println)
-        println("\n ")
-        println("Training errors are ")
-        results._1.foreach(println)
-        println("\n ")
-        println("Elapsed times are ")
-        results._3.foreach(println)
+        
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
         
         val testError: Double = dane.predict(dataTest)
         println("\n ")
@@ -177,18 +238,14 @@ object ExperimentRfm {
      * @param dataTest RDD of test label-vector pairs
      */
     def trainTestAgd(gamma: Double, maxiter: Int, learningrate: Double, momentum: Double, agd: Agd.Driver, dataTest: RDD[(Double, Array[Double])]): Unit = {
-        val results = agd.train(gamma, maxiter, learningrate, momentum)
+        val results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxiter, learningrate, momentum)
         println("\n ")
+        println("====================================================================")
         println("Accelerated Gradient Descent (gamma=" + gamma.toString + ", MaxIterOuter=" + maxiter.toString+ ", LearningRate=" + learningrate.toString + ", momentum=" + momentum.toString + ")")
         println("\n ")
-        println("Objective values are ")
-        results._2.foreach(println)
-        println("\n ")
-        println("Training errors are ")
-        results._1.foreach(println)
-        println("\n ")
-        println("Elapsed times are ")
-        results._3.foreach(println)
+        
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
         
         val testError: Double = agd.predict(dataTest)
         println("\n ")
@@ -206,22 +263,28 @@ object ExperimentRfm {
      * @param dataTest RDD of test label-vector pairs
      */
     def trainTestAdmm(gamma: Double, maxiter: Int, q: Int, learningrate: Double, admm: Admm.Driver, dataTest: RDD[(Double, Array[Double])]): Unit = {
-        val results = admm.train(gamma, maxiter, q, learningrate)
+        val results: (Array[Double], Array[Double], Array[Double]) = admm.train(gamma, maxiter, q, learningrate)
         println("\n ")
+        println("====================================================================")
         println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxiter.toString + ", MaxIterInner=" + q.toString + ", LearningRate=" + learningrate.toString + ")")
         println("\n ")
-        println("Objective values are ")
-        results._2.foreach(println)
-        println("\n ")
-        println("Training errors are ")
-        results._1.foreach(println)
-        println("\n ")
-        println("Elapsed times are ")
-        results._3.foreach(println)
+        
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        
         
         val testError: Double = admm.predict(dataTest)
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
     }
+    
+    def printAsTable(element1: Double, element2: Double, element3: Double): Unit = {
+        println(element2.toString + "\t" + element1.toString + "\t" + element3.toString)
+    }
+    
+    /*
+    def printAsTable(tuple: (Double, Double, Double)): Unit = {
+        println(tuple._2.toString + "\t" + tuple._1.toString + "\t" + tuple._3.toString)
+    }*/
 }

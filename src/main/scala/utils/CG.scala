@@ -44,7 +44,7 @@ class CG(d: Int) {
             rsnew = this.r.toArray.map(a => a*a).sum
             rssqrt = math.sqrt(rsnew)
             if (rssqrt < tol) {
-                println("Iter " + q.toString + ": converged! res = " + rssqrt.toString)
+                //println("Iter " + q.toString + ": converged! res = " + rssqrt.toString)
                 return w.toArray
             }
             this.p *= rsnew / rsold
@@ -88,7 +88,7 @@ class CG(d: Int) {
             rsnew = this.r.toArray.map(x => x*x).sum
             rssqrt = math.sqrt(rsnew)
             if (rssqrt < tol) {
-                println("Iter " + q.toString + ": converged! res = " + rssqrt.toString)
+                //println("Iter " + q.toString + ": converged! res = " + rssqrt.toString)
                 return w.toArray
             }
             this.p *= rsnew / rsold
