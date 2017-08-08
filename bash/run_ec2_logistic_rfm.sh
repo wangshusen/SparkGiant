@@ -4,8 +4,8 @@ PROJ_HOME="$HOME/Code/SparkGiant"
 SPARK_HOME="$HOME/local/spark-2.1.1"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 NUM_SPLITS="63"
-MASTER="local["$NUM_SPLITS"]"
-NUM_FEATURE="1000"
+MASTER="spark://ec2-54-158-141-105.compute-1.amazonaws.com:7077"
+NUM_FEATURE="500"
 
 DATA_FILE="$PROJ_HOME/data/covtype_perm"
 

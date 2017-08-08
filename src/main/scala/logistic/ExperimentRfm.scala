@@ -61,8 +61,8 @@ object ExperimentRfm {
         val sigmaCovtype: Double = 3.2
         var dataTrain: RDD[(Double, Array[Double])] = dataRawTrain.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaCovtype)).persist
         var dataTest: RDD[(Double, Array[Double])] = dataRawTest.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaCovtype)).persist
-        println("There are " + dataTrain.count.toString + " training executors.")
-        println("There are " + dataTest.count.toString + " test executors.")
+        println("There are " + dataTrain.count.toString + " training samples.")
+        println("There are " + dataTest.count.toString + " test samples.")
         var t3 = System.nanoTime()
         println("Time cost of random feature mapping:  " + ((t3-t2)*1e-9).toString + "  seconds.")
         
@@ -123,33 +123,33 @@ object ExperimentRfm {
         
         maxIterOuter = 1000
         learningrate = 10.0
-        /*
-        momentum = 0.5
-        trainTestAgd(gamma, maxIterOuter, learningrate, momentum, agd, dataTest)
+        
+        //momentum = 0.5
+        //trainTestAgd(gamma, maxIterOuter, learningrate, momentum, agd, dataTest)
         
         momentum = 0.9
         trainTestAgd(gamma, maxIterOuter, learningrate, momentum, agd, dataTest)
-        */
+        
         momentum = 0.95
         trainTestAgd(gamma, maxIterOuter, learningrate, momentum, agd, dataTest)
         
-        /*
+        
         // --------------------- GIANT --------------------- //
         isSearch = true
         val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
         
-        maxIterOuter = 100
-        maxIterInner = 30
-        trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
+        //maxIterOuter = 200
+        //maxIterInner = 30
+        //trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
         
-        maxIterOuter = 50
+        maxIterOuter = 100
         maxIterInner = 100
         trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
         
-        maxIterOuter = 25
+        maxIterOuter = 50
         maxIterInner = 300
         trainTestGiant(gamma, maxIterOuter, maxIterInner, giant, dataTest)
-        */
+        
         
         // --------------------- DANE --------------------- //
         isSearch = true
@@ -157,17 +157,17 @@ object ExperimentRfm {
         
         learningrate = 10.0
         
-        //maxIterOuter = 100
+        //maxIterOuter = 60
         //maxIterInner = 30
         //trainTestDane(gamma, maxIterOuter, maxIterInner, learningrate, dane, dataTest)
         
-        maxIterOuter = 50
+        maxIterOuter = 30
         maxIterInner = 100
         trainTestDane(gamma, maxIterOuter, maxIterInner, learningrate, dane, dataTest)
         
-        //maxIterOuter = 25
-        //maxIterInner = 300
-        //trainTestDane(gamma, maxIterOuter, maxIterInner, learningrate, dane, dataTest)
+        maxIterOuter = 15
+        maxIterInner = 300
+        trainTestDane(gamma, maxIterOuter, maxIterInner, learningrate, dane, dataTest)
         
         
         // --------------------- ADMM --------------------- //
@@ -175,17 +175,17 @@ object ExperimentRfm {
         
         learningrate = 10.0
         
-        //maxIterOuter = 200
+        //maxIterOuter = 60
         //maxIterInner = 30
         //trainTestAdmm(gamma, maxIterOuter, maxIterInner, learningrate, admm, dataTest)
         
-        maxIterOuter = 100
+        maxIterOuter = 30
         maxIterInner = 100
         trainTestAdmm(gamma, maxIterOuter, maxIterInner, learningrate, admm, dataTest)
         
-        //maxIterOuter = 50
-        //maxIterInner = 300
-        //trainTestAdmm(gamma, maxIterOuter, maxIterInner, learningrate, admm, dataTest)
+        maxIterOuter = 15
+        maxIterInner = 300
+        trainTestAdmm(gamma, maxIterOuter, maxIterInner, learningrate, admm, dataTest)
         
     }
     

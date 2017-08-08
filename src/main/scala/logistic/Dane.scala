@@ -71,14 +71,15 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         var t1: Double = System.nanoTime()
         
         for (t <- 0 until maxIter) {
-            timeArray(t) = t1 - t0
+            timeArray(t) = (t1 - t0) * 1.0E-9
             this.update(rddTrain)
             t1 = System.nanoTime()
             trainErrorArray(t) = this.trainError
             objValArray(t) = this.objVal
+            println("Iteration " + t.toString + ":\t objective value is " + this.objVal.toString + ",\t time: " + timeArray(t).toString)
         }
         
-        (trainErrorArray, objValArray, timeArray.map(time => time*1.0E-9))
+        (trainErrorArray, objValArray, timeArray)
     }
 
     /* Take one approximate Dane descent step.
