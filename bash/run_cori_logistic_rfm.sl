@@ -12,7 +12,7 @@ PROJ_HOME="$SCRATCH/SparkGiant"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 DATA_FILE="$PROJ_HOME/data/covtype_perm"
 
-NUM_SPLITS="23"
+NUM_SPLITS="31"
 NUM_FEATURE="500"
 
 module load python/3.5-anaconda
