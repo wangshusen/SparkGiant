@@ -2,7 +2,7 @@
 #SBATCH -p regular
 #SBATCH -N 8
 #SBATCH -C haswell
-#SBATCH -t 01:00:00
+#SBATCH -t 00:20:00
 #SBATCH -J wss_giant
 #SBATCH -L SCRATCH
 #SBATCH -e giant_job_%j.err
@@ -12,7 +12,7 @@ PROJ_HOME="$SCRATCH/SparkGiant"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 DATA_FILE="$PROJ_HOME/data/covtype_perm"
 
-NUM_SPLITS="8"
+NUM_SPLITS="23"
 NUM_FEATURE="500"
 
 module load python/3.5-anaconda

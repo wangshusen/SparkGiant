@@ -82,7 +82,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
             t1 = System.nanoTime()
             trainErrorArray(t) = this.trainError
             objValArray(t) = this.objVal
-            println("Iteration " + t.toString + ":   objective value is " + this.objVal.toString)
+            println("Iteration " + t.toString + ":\t objective value is " + this.objVal.toString + ",\t time: " + timeArray(t).toString)
         }
         
         (trainErrorArray, objValArray, timeArray.map(time => time*1.0E-9))
