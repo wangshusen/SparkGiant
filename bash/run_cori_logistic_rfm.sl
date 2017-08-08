@@ -13,7 +13,7 @@ JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 DATA_FILE="$PROJ_HOME/data/covtype_perm"
 
 NUM_SPLITS="5"
-NUM_FEATURE="1000"
+NUM_FEATURE="500"
 
 module load python/3.5-anaconda
 module load spark

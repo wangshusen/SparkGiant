@@ -43,10 +43,15 @@ object ExperimentRfm {
         var dataIdx: RDD[((Double, Array[Double]), Long)] = dataRaw.map(pair => (pair._1 * 2 - 3, pair._2))
                                                                 .zipWithIndex
                                                                 .persist()
+        
         var dataRawTrain: RDD[(Double, Array[Double])] = dataIdx.filter(pair => (pair._2 % 5 > 0.1))
                                                         .map(pair => pair._1).persist()
         var dataRawTest: RDD[(Double, Array[Double])] = dataIdx.filter(pair => (pair._2 % 5 == 0))
-                                                        .map(pair => pair._1)
+                                                        .map(pair => pair._1).persist()
+        println("There are " + dataRawTrain.count.toString + " training samples.")
+        println("There are " + dataRawTest.count.toString + " test samples.")
+        var t2 = System.nanoTime()
+        println("Time cost of loading data:  " + ((t2-t1)*1e-9).toString + "  seconds.")
         
         // estimate the kernel parameter (if it is unknown)
         //val sigma: Double = dataRawTrain.glom.map(Kernel.estimateSigma).mean
@@ -54,9 +59,12 @@ object ExperimentRfm {
         
         // map input data to random Fourier features
         val sigmaCovtype: Double = 3.2
-        var dataTrain: RDD[(Double, Array[Double])] = dataRawTrain.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaCovtype))
-        var dataTest: RDD[(Double, Array[Double])] = dataRawTest.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaCovtype))
-        
+        var dataTrain: RDD[(Double, Array[Double])] = dataRawTrain.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaCovtype)).persist
+        var dataTest: RDD[(Double, Array[Double])] = dataRawTest.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaCovtype)).persist
+        println("There are " + dataTrain.count.toString + " training executors.")
+        println("There are " + dataTest.count.toString + " test executors.")
+        var t3 = System.nanoTime()
+        println("Time cost of random feature mapping:  " + ((t3-t2)*1e-9).toString + "  seconds.")
         
         println("####################################")
         println("spark.conf.getAll:")
@@ -81,8 +89,8 @@ object ExperimentRfm {
         var isSearch: Boolean = true
         val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
         
-        val maxIterOuter: Int = 50
-        val maxIterInner: Int = 300
+        val maxIterOuter: Int = 30
+        val maxIterInner: Int = 100
         
         var gamma: Double = 1E-8
         println("#######################################################################")
