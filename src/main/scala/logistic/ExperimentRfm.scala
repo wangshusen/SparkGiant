@@ -76,10 +76,10 @@ object ExperimentRfm {
         println(" ")
         
         
-        //this.determineGamma(dataTrain, dataTest, sc)
+        this.determineGamma(dataTrain, dataTest, sc)
         
-        var gamma: Double = 1E-8
-        this.compare(gamma, dataTrain, dataTest, sc)
+        //var gamma: Double = 1E-8
+        //this.compare(gamma, dataTrain, dataTest, sc)
         
         
         spark.stop()
