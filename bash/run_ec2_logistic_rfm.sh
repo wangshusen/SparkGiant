@@ -16,9 +16,9 @@ NUM_FEATURE="200"
     --class "distopt.logistic.ExperimentRfm" \
     --master `cat /root/spark-ec2/cluster-url` \
     --num-executors $NUM_SPLITS \
-    --driver-memory 6G \
-    --executor-memory 6G \
-    --executor-cores 2 \
+    --driver-memory 12G \
+    --executor-memory 4G \
+    --executor-cores 1 \
     $JAR_FILE $DATA_FILE_HDFS $NUM_FEATURE $NUM_SPLITS \
     > Result_FEATURE"$NUM_FEATURE".out
 
