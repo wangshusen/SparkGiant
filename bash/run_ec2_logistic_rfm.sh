@@ -10,7 +10,7 @@ cp $JAR_FILE /root/share/
 export DATA_FILE_HDFS="hdfs://"`cat /root/spark-ec2/masters`":9000/covtype_perm"
 
 NUM_SPLITS="3"
-NUM_FEATURE="500"
+NUM_FEATURE="200"
 
 /root/spark/bin/spark-submit \
     --class "distopt.logistic.ExperimentRfm" \
