@@ -1,22 +1,26 @@
 #!/usr/bin/env bash
 
-PROJ_HOME="$HOME/Code/SparkGiant"
-SPARK_HOME="$HOME/local/spark-2.1.1"
-JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
-NUM_SPLITS="63"
-MASTER="spark://ec2-54-158-141-105.compute-1.amazonaws.com:7077"
+PROJ_HOME="/root/SparkGiant"
+
+export JAR_DIR="$PROJ_HOME/target/scala-2.11"
+export JAR_FILE="$JAR_DIR/giant_2.11-1.0.jar"
+cp $JAR_FILE /root/share/
+/root/spark-ec2/copy-dir /root/share/
+
+export DATA_FILE_HDFS="hdfs://"`cat /root/spark-ec2/masters`":9000/covtype_perm"
+
+NUM_SPLITS="3"
 NUM_FEATURE="500"
 
-DATA_FILE="$PROJ_HOME/data/covtype_perm"
-
-$SPARK_HOME/bin/spark-submit \
+/root/spark/bin/spark-submit \
     --class "distopt.logistic.ExperimentRfm" \
-    --master $MASTER \
-    --driver-memory 8G \
-    --executor-cores 1 \
-    --executor-memory 8G \
+    --master `cat /root/spark-ec2/cluster-url` \
     --num-executors $NUM_SPLITS \
-    $JAR_FILE $DATA_FILE $NUM_FEATURE $NUM_SPLITS \
+    --driver-memory 6G \
+    --executor-memory 6G \
+    --executor-cores 2 \
+    $JAR_FILE $DATA_FILE_HDFS $NUM_FEATURE $NUM_SPLITS \
     > Result_FEATURE"$NUM_FEATURE".out
+
   
   
