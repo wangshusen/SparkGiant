@@ -9,7 +9,7 @@ cp $JAR_FILE /root/share/
 
 export DATA_FILE_HDFS="hdfs://"`cat /root/spark-ec2/masters`":9000/covtype_perm"
 
-NUM_SPLITS="3"
+NUM_SPLITS="2"
 NUM_FEATURE="200"
 
 /root/spark/bin/spark-submit \
@@ -18,7 +18,7 @@ NUM_FEATURE="200"
     --num-executors $NUM_SPLITS \
     --driver-memory 12G \
     --executor-memory 4G \
-    --executor-cores 1 \
+    --executor-cores 2 \
     $JAR_FILE $DATA_FILE_HDFS $NUM_FEATURE $NUM_SPLITS \
     > Result_FEATURE"$NUM_FEATURE".out
 
