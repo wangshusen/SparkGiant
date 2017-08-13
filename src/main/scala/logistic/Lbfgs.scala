@@ -91,13 +91,13 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         (trainErrorArray, objValArray, timeArray.map(time => time*1.0E-9))
     }
 
-    /* Take one L-BFGS step.
+    /**
+     * Take one L-BFGS step.
      *
      * Update:
-     *  1. this.w, this.gold, this.gnew
-     *  2. this.sBuffer, this.yBuffer, this.syBuffer
-     *  3. this.trainError
-     *  4. this.objVal
+     *  1. this.w
+     *  2. this.trainError
+     *  3. this.objVal
      *
      * @param rddTrain RDD of executors
      * @return
@@ -136,7 +136,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         }
     }
         
-    /* Evaluate gradient, objective value, and training error.
+    /** 
+     * Evaluate gradient, objective value, and training error.
      *
      * @param wBc broadcast of this.w
      * @param rddTrain RDD of executors
@@ -153,7 +154,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         this.objVal = tmp._3 * this.nInv
     }
             
-    /* Initialize the gradient and buffers.
+    /**
+     * Initialize the gradient and buffers.
      *
      * @param rddTrain RDD of executors
      * @return
@@ -170,7 +172,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         for (j <- 0 until this.d) this.gnew(j) = this.g(j)
     }
     
-    /** Two-loop update of L-BFGS.
+    /**
+     * Two-loop update of L-BFGS.
      *
      * @return ascending direction
      */
@@ -195,6 +198,14 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         -p
     }
     
+    /**
+     * Find a step size that satisfies Wolfe conditions.
+     *
+     * @param wBc broadcast of this.w
+     * @param pBc broadcast of this.p
+     * @param rddTrain RDD of executors
+     * @return ascending direction
+     */
     def wolfeLineSearch(wBc: Broadcast[Array[Double]], pBc: Broadcast[Array[Double]], rddTrain: RDD[Executor]): Double = {
         val tmp: (Array[Double], Array[Double]) = rddTrain
                         .map(_.getAllObjAndGrad(wBc.value, pBc.value))

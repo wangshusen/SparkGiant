@@ -90,7 +90,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         (trainErrorArray, objValArray, timeArray)
     }
 
-    /* Take one approximate Newton step.
+    /**
+     * Take one approximate Newton step.
      *
      * Update:
      *  1. this.w
@@ -101,10 +102,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
      * @return
      */
     def update(rddTrain: RDD[Executor]): Unit ={
-        // broadcast w
-        val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
-        
         // compute full gradient
+        val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
         var tmp: (Array[Double], Double, Double) = rddTrain.map(exe => exe.grad(wBc.value))
                     .reduce((a, b) => ((a._1,b._1).zipped.map(_ + _), a._2+b._2, a._3+b._3))
         this.g = tmp._1.map(_ * this.nInv)

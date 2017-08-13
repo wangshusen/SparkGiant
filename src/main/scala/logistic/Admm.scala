@@ -101,7 +101,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         (trainErrorArray, objValArray, timeArray)
     }
 
-    /* Take one approximate Dane descent step.
+    /**
+     * Take one approximate Dane descent step.
      *
      * Update:
      *  1. this.a, this.u, this.w

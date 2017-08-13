@@ -154,13 +154,14 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
         val w: DenseVector[Double] = new DenseVector(wArray)
         val p: DenseVector[Double] = new DenseVector(pArray)
         var wTmp: DenseVector[Double] = DenseVector.zeros[Double](d)
+        val sgamma: Double = this.s * this.gamma
         
         for (idx <- 0 until this.numStepSizes) {
             wTmp := w - this.stepSizes(idx) * p
             val zexp: Array[Double] = (this.x.t * wTmp).toArray.map((a: Double) => math.exp(a))
             val loss: Double = zexp.map((a: Double) => math.log(1.0 + 1.0 / a)).sum
-            val wNorm: Double = wTmp.toArray.map(a => a*a).sum
-            this.objValArray(idx) = loss + this.s * this.gamma * wNorm * 0.5
+            val wNorm: Double = wTmp.t * wTmp
+            this.objValArray(idx) = loss + sgamma * wNorm * 0.5
         }
         
         this.objValArray
