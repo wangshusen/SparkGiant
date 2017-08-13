@@ -64,7 +64,7 @@ class Driver(sc: SparkContext, n0: Long, d0: Int, m0: Long) {
             eta = this.stepSizes(j)
             var objValNew = objVals(j)
             // sufficient decrease in the objective value
-            if (objValNew < this.objVal + pg * eta) { 
+            if (objValNew <= this.objVal + pg * eta) { 
                 return eta
             }
         }
@@ -140,7 +140,7 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
 
 
     /**
-     * Compute the sum local gradient of the objective function
+     * Compute the sum of the objective function
      *      f_j (w) = log (1 + exp(-z_j)) + 0.5*gamma*||w||_2^2, 
      *      where z_j = <x_j, w-eta*p>.
      * for all eta in the candidate set.

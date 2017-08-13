@@ -12,8 +12,8 @@ PROJ_HOME="$SCRATCH/SparkGiant"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 DATA_FILE="$PROJ_HOME/data/covtype_perm"
 
-NUM_SPLITS="63"
-NUM_FEATURE="1000"
+NUM_SPLITS="31"
+NUM_FEATURE="200"
 
 module load python/3.5-anaconda
 module load spark

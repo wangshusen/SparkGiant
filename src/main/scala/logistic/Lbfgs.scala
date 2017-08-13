@@ -114,7 +114,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
         val pBc: Broadcast[Array[Double]] = this.sc.broadcast(this.p)
         val eta: Double = this.wolfeLineSearch(wBc, pBc, rddTrain)
-        println("Eta = " + eta.toString)
+        //println("Eta = " + eta.toString)
         
         // update w
         for (j <- 0 until this.d) this.w(j) -= eta * this.p(j)
