@@ -213,7 +213,9 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         val objArray: Array[Double] = tmp._1.map(_ * this.nInv)
         val pgArray: Array[Double] = tmp._2.map(_ * this.nInv)
         
-        val pg: Double = this.pnew.t * this.gnew
+
+        var pg: Double = 0.0
+        for (j <- 0 until this.d) pg += this.p(j) * this.g(j)
         val pg1: Double = pg * 0.1
         val pg2: Double = pg * 0.2
         var flag1: Boolean = false
