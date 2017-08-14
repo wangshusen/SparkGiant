@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -p regular
+#SBATCH -p debug
 #SBATCH -N 2
 #SBATCH -C haswell
 #SBATCH -t 00:15:00
