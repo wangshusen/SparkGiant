@@ -272,9 +272,11 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
             this.objValArray(idx) = loss + sgamma * wNorm * 0.5
             // gradient
             val c: DenseVector[Double] = new DenseVector(zexp.map((a: Double) => -1.0 / (1.0 + a)))
-            val g: DenseVector[Double] = this.x * c + sgamma * w
+            val gArray: Array[Double] = (this.x * c + sgamma * w).toArray
             // the inner product <p, g>
-            this.pgArray(idx) = p.t * g
+            var pg: Double = 0.0
+            for (j <- 0 until this.d) pg += gArray(j) * pArray(j)
+            this.pgArray(idx) = pg
         }
         
         (this.objValArray, this.pgArray)

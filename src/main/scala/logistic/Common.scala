@@ -160,7 +160,7 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
             wTmp := w - this.stepSizes(idx) * p
             val zexp: Array[Double] = (this.x.t * wTmp).toArray.map((a: Double) => math.exp(a))
             val loss: Double = zexp.map((a: Double) => math.log(1.0 + 1.0 / a)).sum
-            val wNorm: Double = wTmp.t * wTmp
+            val wNorm: Double = wTmp.toArray.map(a => a*a).sum
             this.objValArray(idx) = loss + sgamma * wNorm * 0.5
         }
         
