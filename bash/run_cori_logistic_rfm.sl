@@ -9,7 +9,7 @@
 #SBATCH -o giant_job_%j.out
 
 PROJ_HOME="$SCRATCH/SparkGiant"
-JAR_FILE="$PROJ_HOME/target/scala-2.10/giant-assembly-1.0.jar"
+JAR_FILE="$PROJ_HOME/target/scala-2.11/giant-assembly-1.0.jar"
 DATA_FILE="$PROJ_HOME/data/covtype_perm"
 
 NUM_SPLITS="31"

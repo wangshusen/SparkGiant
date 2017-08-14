@@ -184,17 +184,23 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         val k: Int = sBuffer.size
         if (k == 0) return p
         
+        def pDot(q: DenseVector[Double]): Double = {
+            var pq: Double = 0.0
+            for (j <- 0 until this.d) pq += this.p(j) * q(j)
+            pq
+        }
+        
         val a: Array[Double] = new Array[Double](k)
         for (i <- 0 until k) {
             var j = k - 1 - i
-            val aj: Double = (p.dot(this.sBuffer(j))) / this.syBuffer(j)
+            val aj: Double = (pdot(this.sBuffer(j))) / this.syBuffer(j)
             a(j) = aj
             p -= aj * this.yBuffer(j)
         }
-        val alpha: Double = this.syBuffer(k-1) / this.yBuffer(k-1).map(x => x*x).sum
+        val alpha: Double = this.syBuffer(k-1) / (this.yBuffer(k-1).map(x => x*x).sum)
         p *= alpha
         for (i <- 0 until k) {
-            val bi: Double = (p dot this.yBuffer(i)) / this.syBuffer(i)
+            val bi: Double = (pdot(this.yBuffer(i))) / this.syBuffer(i)
             p += (a(i) - bi) * this.sBuffer(i)
         }
         -p
