@@ -106,7 +106,6 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         // evaluate gradient and objectives
         val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
         this.updateGradient(wBc, rddTrain)
-        for (j <- 0 until this.d) this.gnew(j) = this.g(j)
     }
 
     /**
@@ -139,7 +138,6 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         
         // compute new gradient
         this.updateGradient(wBc, rddTrain)
-        for (j <- 0 until this.d) this.gnew(j) = this.g(j)
         
         // update buffers
         val st: DenseVector[Double] = (-eta) * this.pnew
@@ -164,14 +162,15 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
      * @return
      */    
     def updateGradient(wBc: Broadcast[Array[Double]], rddTrain: RDD[Executor]): Unit ={
-        // compute full gradient
         var tmp: (Array[Double], Double, Double) = rddTrain.map(exe => exe.grad(wBc.value))
                     .reduce((a, b) => ((a._1,b._1).zipped.map(_ + _), a._2+b._2, a._3+b._3))
-        this.g = tmp._1.map(_ * this.nInv)
-        
-        // update the training error and objective value
+        val g: Array[Double] = tmp._1.map(_ * this.nInv)
         this.trainError = tmp._2 * this.nInv
         this.objVal = tmp._3 * this.nInv
+        for (j <- 0 until this.d) this.gnew(j) = g(j)
+        
+        val gNorm: Double = g.map(a => a*a).sum
+        println("Driver: squared norm of gradient is " + gNorm.toString)
     }
     
     /**
