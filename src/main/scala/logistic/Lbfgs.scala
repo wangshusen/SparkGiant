@@ -239,7 +239,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
     }
             
             
-    def pDot(q: DenseVector[Double]): Double = {
+    def pdot(q: DenseVector[Double]): Double = {
         var pq: Double = 0.0
         for (j <- 0 until this.d) pq += this.p(j) * q(j)
         pq
