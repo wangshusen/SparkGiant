@@ -70,7 +70,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
             for (j <- 0 until this.d) this.w(j) = 0.0
         }
         
-        // initialize the buffers
+        // initialize the buffers and gradient
         this.initialize(rddTrain)
         
         // record the objectives of each iteration
@@ -89,6 +89,24 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         }
         
         (trainErrorArray, objValArray, timeArray.map(time => time*1.0E-9))
+    }
+            
+    /**
+     * Initialize the gradient and buffers.
+     *
+     * @param rddTrain RDD of executors
+     * @return
+     */ 
+    def initialize(rddTrain: RDD[Executor]): Unit ={
+        // empty the buffers
+        this.sBuffer = new Queue[DenseVector[Double]]
+        this.yBuffer = new Queue[DenseVector[Double]]
+        this.syBuffer = new Queue[Double]
+        
+        // evaluate gradient and objectives
+        val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
+        this.updateGradient(wBc, rddTrain)
+        for (j <- 0 until this.d) this.gnew(j) = this.g(j)
     }
 
     /**
@@ -154,24 +172,6 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         // update the training error and objective value
         this.trainError = tmp._2 * this.nInv
         this.objVal = tmp._3 * this.nInv
-    }
-            
-    /**
-     * Initialize the gradient and buffers.
-     *
-     * @param rddTrain RDD of executors
-     * @return
-     */ 
-    def initialize(rddTrain: RDD[Executor]): Unit ={
-        // empty the buffers
-        this.sBuffer = new Queue[DenseVector[Double]]
-        this.yBuffer = new Queue[DenseVector[Double]]
-        this.syBuffer = new Queue[Double]
-        
-        // evaluate gradient and objectives
-        val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
-        this.updateGradient(wBc, rddTrain)
-        for (j <- 0 until this.d) this.gnew(j) = this.g(j)
     }
     
     /**

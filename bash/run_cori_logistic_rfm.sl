@@ -15,7 +15,7 @@ DATA_FILE="$PROJ_HOME/data/covtype_perm"
 NUM_SPLITS="31"
 NUM_FEATURE="50"
 
-module load spark/2.1.1
+module load spark
 ulimit -s unlimited
 start-all.sh
 

@@ -5,7 +5,7 @@ SPARK_HOME="$HOME/local/spark-2.1.1"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 NUM_SPLITS="63"
 MASTER="local["$NUM_SPLITS"]"
-NUM_FEATURE="200"
+NUM_FEATURE="50"
 
 DATA_FILE="$PROJ_HOME/data/covtype_perm"
 
