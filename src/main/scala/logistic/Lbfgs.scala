@@ -128,7 +128,9 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         val yt: DenseVector[Double] = this.gnew - this.gold
         this.sBuffer += st
         this.yBuffer += yt
-        this.syBuffer += st.t * yt
+        var sy: Double = 0.0
+        for (j <- 0 until this.d) sy += st(j) * yt(j)
+        this.syBuffer += sy
         if (this.sBuffer.size > this.numHistory){
             this.sBuffer.dequeue
             this.yBuffer.dequeue
