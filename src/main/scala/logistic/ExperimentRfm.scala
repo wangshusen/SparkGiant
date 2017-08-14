@@ -248,7 +248,7 @@ object ExperimentRfm {
     def trainTestLbfgs(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val lbfgs: Lbfgs.Driver = new Lbfgs.Driver(sc, dataTrain)
         
-        var maxIterOuter: Int = 50
+        var maxIterOuter: Int = 500
         
         var numHistory: Int = 30
         
