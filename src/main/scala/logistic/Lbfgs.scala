@@ -187,14 +187,14 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         val a: Array[Double] = new Array[Double](k)
         for (i <- 0 until k) {
             var j = k - 1 - i
-            val aj: Double = (p.t * this.sBuffer(j)) / this.syBuffer(j)
+            val aj: Double = (p dot this.sBuffer(j)) / this.syBuffer(j)
             a(j) = aj
             p -= aj * this.yBuffer(j)
         }
-        val alpha: Double = this.syBuffer(k-1) / (this.yBuffer(k-1).t * this.yBuffer(k-1))
+        val alpha: Double = this.syBuffer(k-1) / (this.yBuffer(k-1) dot this.yBuffer(k-1))
         p *= alpha
         for (i <- 0 until k) {
-            val bi: Double = (p.t * this.yBuffer(i)) / this.syBuffer(i)
+            val bi: Double = (p dot this.yBuffer(i)) / this.syBuffer(i)
             p += (a(i) - bi) * this.sBuffer(i)
         }
         -p
