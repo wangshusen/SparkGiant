@@ -3,7 +3,7 @@
 PROJ_HOME="/root/SparkGiant"
 
 export JAR_DIR="$PROJ_HOME/target/scala-2.11"
-export JAR_FILE="$JAR_DIR/giant_2.11-1.0.jar"
+export JAR_FILE="$JAR_DIR/giant-assembly-1.0.jar"
 cp $JAR_FILE /root/share/
 /root/spark-ec2/copy-dir /root/share/
 
