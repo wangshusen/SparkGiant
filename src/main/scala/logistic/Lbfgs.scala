@@ -217,7 +217,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         val pgArray: Array[Double] = tmp._2.map(_ * this.nInv)
         
 
-        var pg: Double = this.pdot(this.g)
+        var pg: Double = this.pdot(this.gnew)
         //for (j <- 0 until this.d) pg += this.p(j) * this.g(j)
         val pg1: Double = pg * 0.1
         val pg2: Double = pg * 0.2
