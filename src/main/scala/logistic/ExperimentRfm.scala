@@ -26,7 +26,7 @@ object ExperimentRfm {
         var t0 = System.nanoTime()
         val spark = (SparkSession
                       .builder()
-                      .appName("Giant for Ridge Regression")
+                      .appName("Distributed Algorithms for Logistic Regression")
                       .config("spark.some.config.option", "some-value")
                       .getOrCreate())
         val sc = spark.sparkContext
