@@ -128,9 +128,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         val yt: DenseVector[Double] = this.gnew - this.gold
         this.sBuffer += st
         this.yBuffer += yt
-        var sy: Double = 0.0
-        for (j <- 0 until this.d) sy += st(j) * yt(j)
-        this.syBuffer += sy
+        this.syBuffer += st.t * yt
         if (this.sBuffer.size > this.numHistory){
             this.sBuffer.dequeue
             this.yBuffer.dequeue
@@ -184,18 +182,17 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         val k: Int = sBuffer.size
         if (k == 0) return p
         
-        
         val a: Array[Double] = new Array[Double](k)
         for (i <- 0 until k) {
             var j = k - 1 - i
-            val aj: Double = (this.pdot(this.sBuffer(j))) / this.syBuffer(j)
+            val aj: Double = (p.t * this.sBuffer(j)) / this.syBuffer(j)
             a(j) = aj
             p -= aj * this.yBuffer(j)
         }
-        val alpha: Double = this.syBuffer(k-1) / (this.yBuffer(k-1).toArray.map(x => x*x).sum)
+        val alpha: Double = this.syBuffer(k-1) / (this.yBuffer(k-1).t * this.yBuffer(k-1))
         p *= alpha
         for (i <- 0 until k) {
-            val bi: Double = (this.pdot(this.yBuffer(i))) / this.syBuffer(i)
+            val bi: Double = (p.t * this.yBuffer(i)) / this.syBuffer(i)
             p += (a(i) - bi) * this.sBuffer(i)
         }
         -p
@@ -216,9 +213,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         val objArray: Array[Double] = tmp._1.map(_ * this.nInv)
         val pgArray: Array[Double] = tmp._2.map(_ * this.nInv)
         
-
-        var pg: Double = this.pdot(this.gnew)
-        //for (j <- 0 until this.d) pg += this.p(j) * this.g(j)
+        val pg: Double = this.pnew.t * this.gnew
         val pg1: Double = pg * 0.1
         val pg2: Double = pg * 0.2
         var flag1: Boolean = false
@@ -237,9 +232,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         // then return the smallest step size in the candidate set.
         eta
     }
-            
-            
-    def pdot(q: DenseVector[Double]): Double = {
+                 
+    def pDot(q: DenseVector[Double]): Double = {
         var pq: Double = 0.0
         for (j <- 0 until this.d) pq += this.p(j) * q(j)
         pq
@@ -284,11 +278,9 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
             this.objValArray(idx) = loss + sgamma * wNorm * 0.5
             // gradient
             val c: DenseVector[Double] = new DenseVector(zexp.map((a: Double) => -1.0 / (1.0 + a)))
-            val gArray: Array[Double] = (this.x * c + sgamma * w).toArray
+            val g: DenseVector[Double] = this.x * c + sgamma * w
             // the inner product <p, g>
-            var pg: Double = 0.0
-            for (j <- 0 until this.d) pg += gArray(j) * pArray(j)
-            this.pgArray(idx) = pg
+            this.pgArray(idx) = p.t * g
         }
         
         (this.objValArray, this.pgArray)

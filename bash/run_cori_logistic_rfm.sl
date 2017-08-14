@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -p regular
-#SBATCH -N 2
+#SBATCH -N 8
 #SBATCH -C haswell
 #SBATCH -t 00:15:00
 #SBATCH -J wss_giant
@@ -9,12 +9,13 @@
 #SBATCH -o giant_job_%j.out
 
 PROJ_HOME="$SCRATCH/SparkGiant"
-JAR_FILE="$PROJ_HOME/target/scala-2.11/giant-assembly-1.0.jar"
+JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 DATA_FILE="$PROJ_HOME/data/covtype_perm"
 
 NUM_SPLITS="31"
-NUM_FEATURE="50"
+NUM_FEATURE="200"
 
+module load python/3.5-anaconda
 module load spark
 ulimit -s unlimited
 start-all.sh
