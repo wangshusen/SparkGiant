@@ -15,7 +15,6 @@ DATA_FILE="$PROJ_HOME/data/covtype_perm"
 NUM_SPLITS="31"
 NUM_FEATURE="200"
 
-module load python/3.5-anaconda
 module load spark
 ulimit -s unlimited
 start-all.sh
