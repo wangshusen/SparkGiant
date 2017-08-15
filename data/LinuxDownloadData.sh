@@ -9,8 +9,7 @@ wget http://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/covtype.libsv
 mv covtype.libsvm.binary.scale.bz2 covtype.bz2
 bzip2 -d covtype.bz2
 
-wget http://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/a9a
-wget http://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/a9a.t
-
-wget http://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/w8a
-wget http://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/w8a.t
+wget http://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/epsilon_normalized.bz2
+bzip2 -d epsilon_normalized.bz2
+wget http://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/epsilon_normalized.t.bz2
+bzip2 -d epsilon_normalized.t.bz2
