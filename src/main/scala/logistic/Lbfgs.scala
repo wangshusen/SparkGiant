@@ -137,7 +137,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         // search for a step size that leads to sufficient decrease
         val pBc: Broadcast[Array[Double]] = this.sc.broadcast(this.pnew.toArray)
         val eta: Double = this.wolfeLineSearch(wBcOld, pBc, rddTrain)
-        println("Eta = " + eta.toString)
+        //println("Eta = " + eta.toString)
         
         // update w
         for (j <- 0 until this.d) this.w(j) -= eta * this.pnew(j)
@@ -179,7 +179,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         for (j <- 0 until this.d) this.gnew(j) = g(j)
         
         this.gNorm = g.map(a => a*a).sum
-        println("Driver: squared norm of gradient is " + this.gNorm.toString)
+        //println("Driver: squared norm of gradient is " + this.gNorm.toString)
     }
     
     /**

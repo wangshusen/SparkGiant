@@ -77,23 +77,7 @@ object ExperimentRfm {
         
         
         
-        var gamma: Double = 1E-4
-        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
-        this.trainTestAgd(gamma, sc, dataTrain, dataTest)
-        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
-        
-        
-        gamma = 1E-6
-        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
-        this.trainTestAgd(gamma, sc, dataTrain, dataTest)
-        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
-        
-        
-        gamma = 1E-8
+        var gamma: Double = 1E-8
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
         this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
@@ -135,7 +119,7 @@ object ExperimentRfm {
         
         
         maxIterOuter = 50
-        maxIterInner = 300
+        maxIterInner = 200
         
         results = giant.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")
@@ -159,7 +143,7 @@ object ExperimentRfm {
         
         var learningrate = 10.0
         
-        var maxIterOuter = 30
+        var maxIterOuter = 20
         var maxIterInner = 100
         
         var results: (Array[Double], Array[Double], Array[Double]) = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
@@ -175,8 +159,8 @@ object ExperimentRfm {
         println("\n ")
         
         
-        maxIterOuter = 15
-        maxIterInner = 300
+        maxIterOuter = 10
+        maxIterInner = 200
         
         results = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
@@ -199,7 +183,7 @@ object ExperimentRfm {
         
         var learningrate = 10.0
         
-        var maxIterOuter = 30
+        var maxIterOuter = 20
         var maxIterInner = 100                                                                                                                  
         var results: (Array[Double], Array[Double], Array[Double]) = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
@@ -214,8 +198,8 @@ object ExperimentRfm {
         println("\n ")
         
         
-        maxIterOuter = 15
-        maxIterInner = 300                                                                                                                  
+        maxIterOuter = 10
+        maxIterInner = 200                                                                                                                  
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
         println("====================================================================")
@@ -234,7 +218,7 @@ object ExperimentRfm {
     def trainTestAgd(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val agd: Agd.Driver = new Agd.Driver(sc, dataTrain)
         
-        var maxIterOuter = 1000
+        var maxIterOuter = 2000
         
         var learningrate = 10.0
         var momentum = 0.9
