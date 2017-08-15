@@ -1,4 +1,4 @@
-package distopt.quadratic.GiantExact
+package distopt.quadratic.Giant
 
 // spark-core
 import org.apache.spark.SparkContext
@@ -19,37 +19,46 @@ import breeze.numerics._
  */
 class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boolean = false)
         extends distopt.quadratic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
-    
     // initialize executors
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
     println("Driver: executors are initialized using the input data!")
 
     /**
-     * Train a ridge regression model using GIANT with the local problems exactly solved.
+     * Train a ridge regression model using GIANT with the local problems solved by fixed number of CG steps.
      *
      * @param gamma the regularization parameter
      * @param maxIter max number of iterations
+     * @param q number of CG iterations
      * @return trainErrorArray the training error in each iteration
      * @return objValArray the objective values in each iteration
      * @return timeArray the elapsed times counted at each iteration
      */
-    def train(gamma: Double, maxIter: Int): (Array[Double], Array[Double], Array[Double]) = {
+    def train(gamma: Double, maxIter: Int, q: Int, isModelAvg: Boolean = false): (Array[Double], Array[Double], Array[Double]) = {
+        // decide whether to form the Hessian matrix
+        val s: Double = this.n.toDouble / this.m.toDouble
+        val cost1: Double = 2 * q * s // CG without the Hessian formed
+        val cost2: Double = (s + q) * this.d // CG with the Hessian formed
+        var isFormHessian: Boolean = if(cost1 < cost2) false else true
+        
         println("There are " + this.rdd.count.toString + " executors.")
         val t0: Double = System.nanoTime()
         
         // setup the executors for training
         val rddTrain: RDD[Executor] = this.rdd
                                     .map(exe => {exe.setGamma(gamma);  
-                                                 exe.invertHessian; 
+                                                 exe.setParam(q, isFormHessian); 
                                                  exe})
                                     .persist()
-        println("Driver: executors are setup for training! gamma = " + gamma.toString)
+        println("count = " + rddTrain.count.toString)
+        println("Driver: executors are setup for training! gamma = " + gamma.toString + ", q = " + q.toString + ", isFormHessian = " + isFormHessian.toString)
         
         // initialize w by model averaging
-        this.w = rddTrain.map(_.solve())
-                        .reduce((a,b) => (a,b).zipped.map(_ + _))
-                        .map(_ / this.n.toDouble)
-        println("Driver: model averaging is done!")
+        if (isModelAvg) {
+            this.w = rddTrain.map(_.solve())
+                            .reduce((a,b) => (a,b).zipped.map(_ + _))
+                            .map(_ / this.n.toDouble)
+            println("Driver: model averaging is done!")
+        }
         
         // record the objectives of each iteration
         val trainErrorArray: Array[Double] = new Array[Double](maxIter)
@@ -129,21 +138,23 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
  */
 class Executor(arr: Array[(Double, Array[Double])]) extends 
         distopt.quadratic.Common.Executor(arr) {
-    // initialization
-    val svd.SVD(v, sig, _) = svd.reduced(this.x)
-    var invH: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, d)
-    
-    /**
-     * Compute the inverse Hessian matrix (X'*X/s + gamma*I)^{-1}
-     * using the local data.
-     */
-    def invertHessian(): Unit = {
-        var sig2: DenseVector[Double] = (this.sig :* this.sig) * (1.0/this.s) + this.gamma
-        sig2 := 1.0 / sig2
-        for (j <- 0 until d) {
-            this.invH(::, j) := this.v(::, j) :* sig2(j)
+    // parameters for CG
+    var q: Int = 0 // number of CG iterations
+    var isFormHessian: Boolean = true
+    var isXx: Boolean = false
+    var xx: DenseMatrix[Double] = DenseMatrix.zeros[Double](1, 1)
+    val cg: distopt.utils.CG = new distopt.utils.CG(this.d)
+            
+    def setParam(q0: Int, isFormHessian0: Boolean){
+        this.q = q0
+        this.isFormHessian = isFormHessian0
+        
+        if (this.isFormHessian) {
+            if (! this.isXx) {
+                this.xx = this.x * this.x.t
+                this.isXx = true
+            }
         }
-        this.invH := this.invH * this.v.t
     }
     
     /**
@@ -151,10 +162,17 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
      * 0.5/s*||X w - y||_2^2 + 0.5*gamma*||w||_2^2
      * using the local data.
      *
-     * @return w solution to the local problem
+     * @return approximate solution to the local problem
      */
     def solve(): Array[Double] = {
-        (this.invH * this.xy).toArray
+        var w: Array[Double] = Array.empty[Double]
+        if (this.isFormHessian) {
+            w = cg.solver2(this.xx, this.xy, this.sDouble * this.gamma, this.q) 
+        }
+        else {
+            w = cg.solver1(this.x, this.xy, this.sDouble * this.gamma, this.q)
+        }
+        w.map((a: Double) => a * this.sDouble)
     }
 
     /**
@@ -164,9 +182,15 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
      * @return the local Newton direction scaled by s
      */
     def newton(gArray: Array[Double]): Array[Double] = {
-        val g: DenseMatrix[Double] = new DenseMatrix(this.d, 1, gArray)
-        val p: DenseMatrix[Double] = (this.invH * g) * this.sDouble
-        p.toArray
+        val g: DenseVector[Double] = new DenseVector(gArray)
+        var p: Array[Double] = Array.empty[Double]
+        if (this.isFormHessian) {
+            p = cg.solver2(this.xx, this.sDouble * g, this.sDouble * this.gamma, this.q)
+        }
+        else {
+            p = cg.solver1(this.x, this.sDouble * g, this.sDouble * this.gamma, this.q)
+        }
+        p.map((a: Double) => a * this.sDouble)
     }
 }
 

@@ -21,81 +21,39 @@ import distopt.quadratic._
 object Experiment {
     def main(args: Array[String]) {
         // parse parameters from command line arguments
-        val filename: String = args(0).toString
-        val numSplits: Int = args(1).toInt
-        var gamma: Double = args(2).toDouble
-        val maxiter: Int = args(3).toInt
-        val q: Int = args(4).toInt
+        val filename1: String = args(0).toString
+        val filename2: String = args(1).toString
+        val numSplits: Int = args(2).toInt
+        
+        println("Training file name: " + filename1)
+        println("Test file name: " + filename2)
+        println("Number of splits: " + numSplits.toString)
         
         // launch Spark
         var t0 = System.nanoTime()
         val spark = (SparkSession
                       .builder()
-                      .appName("Giant for Ridge Regression")
+                      .appName("Distributed Algorithms for Logistic Regression")
                       .config("spark.some.config.option", "some-value")
                       .getOrCreate())
         val sc = spark.sparkContext
-        //sc.setLogLevel("ERROR")
+        sc.setLogLevel("ERROR")
         var t1 = System.nanoTime()
         println("Time cost of starting Spark:  " + ((t1-t0)*1e-9).toString + "  seconds.")
         
         // load training and test data
-        val (data, dataTest) = loadData(spark, filename, numSplits)
+        val isCoalesce: Boolean = false
+        val dataTrain: RDD[(Double, Array[Double])] = Utils.loadLibsvmData(spark, filename1, numSplits, isCoalesce)
+                                                        .map(pair => (pair._1.toDouble, pair._2))
+                                                        .persist()
+        val dataTest: RDD[(Double, Array[Double])] = Utils.loadLibsvmData(spark, filename2)
+                                                        .map(pair => (pair._1.toDouble, pair._2))
+                                                        .persist()
         
-        // initialize driver
-        val isSearch: Boolean = false
-        var giant: GiantCg.Driver = new GiantCg.Driver(sc, data, isSearch)
-        
-        // train and test
-        trainAndTest(gamma, maxiter, q, giant, dataTest)
-        
-        
-        spark.stop()
-    }
-    
-    def trainAndTest(gamma: Double, maxiter: Int, q: Int, giant: GiantCg.Driver, dataTest: RDD[(Double, Array[Double])]): Unit = {
-        val results = giant.train(gamma, maxiter, q)
-        println("\n ")
-        println("Objective values are ")
-        results._2.foreach(println)
-        println("\n ")
-        println("Training errors are ")
-        results._1.foreach(println)
-        println("\n ")
-        println("Elapsed times are ")
-        results._3.foreach(println)
-        
-        // test error after training
-        val testError: Double = giant.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-    }
-    
-    def loadData(spark: SparkSession, filename: String, numSplits: Int): (RDD[(Double, Array[Double])], RDD[(Double, Array[Double])]) = {
-        // load training data
-        var t0 = System.nanoTime()
-        val dataRaw: RDD[(Float, Array[Double])] = Utils.loadLibsvmData(spark, filename, numSplits).persist()
-        println("Number of samples: " + dataRaw.count.toString)
-        println("Number of partitions: " + dataRaw.getNumPartitions.toString)
-        var t1 = System.nanoTime()
-        println("Time cost of loading data:  " + ((t1-t0)*1e-9).toString + "  seconds.")
-        
-        // normalize training data
-        val sc: SparkContext = spark.sparkContext
-        t0 = System.nanoTime()
-        val (meanLabel, maxFeatures) = Utils.meanAndMax(dataRaw)
-        val data: RDD[(Double, Array[Double])] = Utils.normalize(sc, dataRaw, meanLabel, maxFeatures).persist()
-        val n: Long = data.count
-        t1 = System.nanoTime()
-        println("n = " + n.toString)
-        println("Time cost of data normalization:  " + ((t1-t0)*1e-9).toString + "  seconds.")
-        println(" ")
-        
-        // load and normalize test data
-        val dataTestRaw: RDD[(Float, Array[Double])] = Utils.loadLibsvmData(spark, filename+".t", numSplits)
-        val dataTest: RDD[(Double, Array[Double])] = Utils.normalize(sc, dataTestRaw, meanLabel, maxFeatures).persist()
-        
+        println("There are " + dataTrain.count.toString + " training samples.")
+        println("There are " + dataTest.count.toString + " test samples.")
+        var t2 = System.nanoTime()
+        println("Time cost of loading data:  " + ((t2-t1)*1e-9).toString + "  seconds.")
         
         println("####################################")
         println("spark.conf.getAll:")
@@ -106,7 +64,57 @@ object Experiment {
         println("####################################")
         println(" ")
         
-        (data, dataTest)
+        
+        
+        var gamma: Double = 1E-4
+        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        
+        spark.stop()
     }
     
+    
+    
+    def trainTestGiant(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
+        val isSearch: Boolean = true
+        val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
+        
+        
+        var maxIterOuter: Int = 60
+        var maxIterInner: Int = 100
+        
+        var results: (Array[Double], Array[Double], Array[Double]) = giant.train(gamma, maxIterOuter, maxIterInner)
+        println("\n ")
+        println("====================================================================")
+        println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        var testError: Double = giant.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        /*
+        maxIterOuter = 30
+        maxIterInner = 300
+        
+        results = giant.train(gamma, maxIterOuter, maxIterInner)
+        println("\n ")
+        println("====================================================================")
+        println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = giant.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        */
+    }
+    
+    
+    
+    def printAsTable(element1: Double, element2: Double, element3: Double): Unit = {
+        println(element2.toString + "\t" + element1.toString + "\t" + element3.toString)
+    }
 }
