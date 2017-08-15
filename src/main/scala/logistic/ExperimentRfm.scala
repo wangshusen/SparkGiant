@@ -77,7 +77,15 @@ object ExperimentRfm {
         
         
         
-        var gamma: Double = 1E-8
+        var gamma: Double = 1E-4
+        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        this.trainTestDane(gamma, sc, dataTrain, dataTest)
+        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        this.trainTestAgd(gamma, sc, dataTrain, dataTest)
+        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+
+        /*
+        gamma = 1E-6
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
         this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
@@ -85,12 +93,14 @@ object ExperimentRfm {
         this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
 
         
-        gamma = 1E-10
+        gamma = 1E-8
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
         this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+        
+        */
         
         spark.stop()
     }
@@ -102,7 +112,7 @@ object ExperimentRfm {
         val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
         
         
-        var maxIterOuter: Int = 100
+        var maxIterOuter: Int = 60
         var maxIterInner: Int = 100
         
         var results: (Array[Double], Array[Double], Array[Double]) = giant.train(gamma, maxIterOuter, maxIterInner)
@@ -117,9 +127,9 @@ object ExperimentRfm {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        
-        maxIterOuter = 50
-        maxIterInner = 200
+        /*
+        maxIterOuter = 30
+        maxIterInner = 300
         
         results = giant.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")
@@ -132,7 +142,7 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        */
     }
     
     
@@ -158,7 +168,7 @@ object ExperimentRfm {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        
+        /*
         maxIterOuter = 10
         maxIterInner = 200
         
@@ -173,6 +183,7 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        */
     }
     
 
@@ -197,7 +208,7 @@ object ExperimentRfm {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        
+        /*
         maxIterOuter = 10
         maxIterInner = 200                                                                                                                  
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
@@ -211,6 +222,7 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        */
     }
     
     

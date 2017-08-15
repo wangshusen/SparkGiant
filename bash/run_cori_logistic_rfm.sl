@@ -2,7 +2,7 @@
 #SBATCH -p regular
 #SBATCH -N 8
 #SBATCH -C haswell
-#SBATCH -t 02:00:00
+#SBATCH -t 04:00:00
 #SBATCH -J wss_giant
 #SBATCH -L SCRATCH
 #SBATCH -e giant_job_%j.err
@@ -13,7 +13,7 @@ JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 DATA_FILE="$PROJ_HOME/data/covtype_perm"
 
 NUM_SPLITS="63"
-NUM_FEATURE="1000"
+NUM_FEATURE="10000"
 
 module load spark
 ulimit -s unlimited
