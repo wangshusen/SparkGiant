@@ -71,7 +71,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         }
         
         // initialize the buffers and gradient
-        this.initialize(rddTrain)
+        var wBc: Broadcast[Array[Double]] = this.initialize(rddTrain)
         
         // record the objectives of each iteration
         val trainErrorArray: Array[Double] = new Array[Double](maxIter)
@@ -82,7 +82,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         
         for (t <- 0 until maxIter) {
             timeArray(t) = t1 - t0
-            this.update(rddTrain)
+            wBc = this.update(wBc, rddTrain)
             t1 = System.nanoTime()
             trainErrorArray(t) = this.trainError
             objValArray(t) = this.objVal
@@ -97,7 +97,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
      * @param rddTrain RDD of executors
      * @return
      */ 
-    def initialize(rddTrain: RDD[Executor]): Unit ={
+    def initialize(rddTrain: RDD[Executor]): Broadcast[Array[Double]] ={
         // empty the buffers
         this.sBuffer = new Queue[DenseVector[Double]]
         this.yBuffer = new Queue[DenseVector[Double]]
@@ -106,6 +106,15 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         // evaluate gradient and objectives
         val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
         this.updateGradient(wBc, rddTrain)
+        
+        wBc
+        
+        // take a gradient step
+        //val g: Array[Double] = this.gnew.toArray.map(a => a*1000.0)
+        //val pBc: Broadcast[Array[Double]] = this.sc.broadcast(g)
+        //val eta: Double = this.wolfeLineSearch(wBc, pBc, rddTrain)
+        //println("Eta = " + eta.toString)
+        //for (j <- 0 until this.d) this.w(j) -= eta * g(j)
     }
 
     /**
@@ -119,25 +128,24 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
      * @param rddTrain RDD of executors
      * @return
      */
-    def update(rddTrain: RDD[Executor]): Unit ={
+    def update(wBcOld: Broadcast[Array[Double]], rddTrain: RDD[Executor]): Broadcast[Array[Double]] ={
         // store old gradient
         this.gold := this.gnew
         
-        // compute ascending direction by two-loop iteration
+        // compute ascending direction by the two-loop iteration
         this.pnew := this.twoLoop()
-        for (j <- 0 until this.d) this.p(j) = this.pnew(j)
         
         // search for a step size that leads to sufficient decrease
-        val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
-        val pBc: Broadcast[Array[Double]] = this.sc.broadcast(this.p)
-        val eta: Double = this.wolfeLineSearch(wBc, pBc, rddTrain)
+        val pBc: Broadcast[Array[Double]] = this.sc.broadcast(this.pnew.toArray)
+        val eta: Double = this.wolfeLineSearch(wBcOld, pBc, rddTrain)
         println("Eta = " + eta.toString)
         
         // update w
-        for (j <- 0 until this.d) this.w(j) -= eta * this.p(j)
+        for (j <- 0 until this.d) this.w(j) -= eta * this.pnew(j)
         
         // compute new gradient
-        this.updateGradient(wBc, rddTrain)
+        val wBcNew: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
+        this.updateGradient(wBcNew, rddTrain)
         
         // update buffers
         val st: DenseVector[Double] = (-eta) * this.pnew
@@ -152,6 +160,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
             this.yBuffer.dequeue
             this.syBuffer.dequeue
         }
+        
+        wBcNew
     }
         
     /** 
@@ -224,7 +234,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         var pg: Double = 0.0
         for (j <- 0 until this.d) pg += this.pnew(j) * this.gnew(j)
         val pg1: Double = pg * 0.1
-        val pg2: Double = pg * 0.2
+        val pg2: Double = pg * 0.5
         var flag1: Boolean = false
         var flag2: Boolean = false
         var eta: Double = 1.0
