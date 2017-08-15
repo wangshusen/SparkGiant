@@ -36,6 +36,7 @@ class Driver(sc: SparkContext, n0: Long, d0: Int, m0: Long) {
     val d: Int = d0
     val m: Long = m0
     val nInv: Double = 1.0 / n.toDouble
+    val gNormTol: Double = 1E-22 * d.toDouble
     
     // variables
     var w: Array[Double] = new Array[Double](d)
@@ -43,6 +44,7 @@ class Driver(sc: SparkContext, n0: Long, d0: Int, m0: Long) {
     var p: Array[Double] = new Array[Double](d)
     var trainError: Double = 0.0
     var objVal: Double = 0.0
+    var gNorm: Double = 1.0
     
     // for line search
     val numStepSizes: Int = Constants.numStepSizes

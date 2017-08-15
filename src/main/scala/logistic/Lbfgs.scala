@@ -81,14 +81,20 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         var t1: Double = System.nanoTime()
         
         for (t <- 0 until maxIter) {
-            timeArray(t) = t1 - t0
+            timeArray(t) = (t1 - t0) * 1.0E-9
             wBc = this.update(wBc, rddTrain)
             t1 = System.nanoTime()
             trainErrorArray(t) = this.trainError
             objValArray(t) = this.objVal
+            
+            if (this.gNorm < this.gNormTol) {
+                return (trainErrorArray.slice(0, t+1), 
+                        objValArray.slice(0, t+1), 
+                        timeArray.slice(0, t+1))
+            }
         }
         
-        (trainErrorArray, objValArray, timeArray.map(time => time*1.0E-9))
+        (trainErrorArray, objValArray, timeArray)
     }
             
     /**
@@ -108,13 +114,6 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         this.updateGradient(wBc, rddTrain)
         
         wBc
-        
-        // take a gradient step
-        //val g: Array[Double] = this.gnew.toArray.map(a => a*1000.0)
-        //val pBc: Broadcast[Array[Double]] = this.sc.broadcast(g)
-        //val eta: Double = this.wolfeLineSearch(wBc, pBc, rddTrain)
-        //println("Eta = " + eta.toString)
-        //for (j <- 0 until this.d) this.w(j) -= eta * g(j)
     }
 
     /**
@@ -179,8 +178,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         this.objVal = tmp._3 * this.nInv
         for (j <- 0 until this.d) this.gnew(j) = g(j)
         
-        val gNorm: Double = g.map(a => a*a).sum
-        println("Driver: squared norm of gradient is " + gNorm.toString)
+        this.gNorm = g.map(a => a*a).sum
+        println("Driver: squared norm of gradient is " + this.gNorm.toString)
     }
     
     /**
@@ -234,7 +233,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         var pg: Double = 0.0
         for (j <- 0 until this.d) pg += this.pnew(j) * this.gnew(j)
         val pg1: Double = pg * 0.1
-        val pg2: Double = pg * 0.5
+        val pg2: Double = pg * 0.2
         var flag1: Boolean = false
         var flag2: Boolean = false
         var eta: Double = 1.0

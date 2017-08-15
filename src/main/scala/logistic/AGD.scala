@@ -71,14 +71,14 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         var t1: Double = System.nanoTime()
         
         for (t <- 0 until maxIter) {
-            timeArray(t) = t1 - t0
+            timeArray(t) = (t1 - t0) * 1.0E-9
             this.update(rddTrain, learningRate, momentum)
             t1 = System.nanoTime()
             trainErrorArray(t) = this.trainError
             objValArray(t) = this.objVal
         }
         
-        (trainErrorArray, objValArray, timeArray.map(time => time*1.0E-9))
+        (trainErrorArray, objValArray, timeArray)
     }
 
     /* Take one gradient descent step.

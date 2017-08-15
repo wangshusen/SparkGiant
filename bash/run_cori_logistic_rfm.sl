@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -p debug
-#SBATCH -N 2
+#SBATCH -N 8
 #SBATCH -C haswell
-#SBATCH -t 00:15:00
+#SBATCH -t 01:00:00
 #SBATCH -J wss_giant
 #SBATCH -L SCRATCH
 #SBATCH -e giant_job_%j.err
@@ -12,8 +12,8 @@ PROJ_HOME="$SCRATCH/SparkGiant"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 DATA_FILE="$PROJ_HOME/data/covtype_perm"
 
-NUM_SPLITS="31"
-NUM_FEATURE="50"
+NUM_SPLITS="63"
+NUM_FEATURE="200"
 
 module load spark
 ulimit -s unlimited

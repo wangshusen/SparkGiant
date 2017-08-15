@@ -79,6 +79,12 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
             trainErrorArray(t) = this.trainError
             objValArray(t) = this.objVal
             if (!this.isMute) println("Iteration " + t.toString + ":\t objective value is " + this.objVal.toString + ",\t time: " + timeArray(t).toString)
+            
+            if (this.gNorm < this.gNormTol) {
+                return (trainErrorArray.slice(0, t+1), 
+                        objValArray.slice(0, t+1), 
+                        timeArray.slice(0, t+1))
+            }
         }
         
         (trainErrorArray, objValArray, timeArray)
@@ -104,8 +110,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         this.g = tmp._1.map(_ * this.nInv)
         val gBc: Broadcast[Array[Double]] = this.sc.broadcast(this.g)
         
-        //val gNorm: Double = g.map(a => a*a).sum
-        //println("Driver: squared norm of gradient is " + gNorm.toString)
+        this.gNorm = g.map(a => a*a).sum
+        //println("Driver: squared norm of gradient is " + this.gNorm.toString)
         
         // update the training error and objective value
         this.trainError = tmp._2 * this.nInv
