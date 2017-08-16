@@ -41,10 +41,10 @@ object Experiment {
         
         var gamma: Double = 1E-4
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        //this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
-        //this.trainTestAgd(gamma, sc, dataTrain, dataTest)
-        //this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+        this.trainTestDane(gamma, sc, dataTrain, dataTest)
+        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        this.trainTestAgd(gamma, sc, dataTrain, dataTest)
+        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
 
         /*
         gamma = 1E-6
@@ -192,7 +192,7 @@ object Experiment {
     def trainTestAgd(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val agd: Agd.Driver = new Agd.Driver(sc, dataTrain)
         
-        var maxIterOuter = 2000
+        var maxIterOuter = 3000
         
         var learningrate = 10.0
         var momentum = 0.9
@@ -230,7 +230,7 @@ object Experiment {
     def trainTestLbfgs(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val lbfgs: Lbfgs.Driver = new Lbfgs.Driver(sc, dataTrain)
         
-        var maxIterOuter: Int = 200
+        var maxIterOuter: Int = 500
         
         var numHistory: Int = 30
         
@@ -248,6 +248,21 @@ object Experiment {
         
         
         numHistory = 100
+        
+        results = lbfgs.train(gamma, maxIterOuter, numHistory)
+        println("\n ")
+        println("====================================================================")
+        println("L-BFGS (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", numHistory=" + numHistory.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = lbfgs.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        
+        numHistory = 300
         
         results = lbfgs.train(gamma, maxIterOuter, numHistory)
         println("\n ")
