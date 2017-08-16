@@ -36,8 +36,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
     def train(gamma: Double, maxIter: Int, q: Int, isModelAvg: Boolean = false): (Array[Double], Array[Double], Array[Double]) = {
         // decide whether to form the Hessian matrix
         val s: Double = this.n.toDouble / this.m.toDouble
-        val cost1: Double = 2 * q * s // CG without the Hessian formed
-        val cost2: Double = (s + q) * this.d // CG with the Hessian formed
+        val cost1: Double = 0.2 * maxIter * q * s // CG without the Hessian formed
+        val cost2: Double = s * this.d + 0.2 * maxIter * q * this.d // CG with the Hessian formed
         var isFormHessian: Boolean = if(cost1 < cost2) false else true
         
         println("There are " + this.rdd.count.toString + " executors.")
@@ -46,7 +46,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         // setup the executors for training
         val rddTrain: RDD[Executor] = this.rdd
                                     .map(exe => {exe.setGamma(gamma);  
-                                                 exe.setParam(q, isFormHessian); 
+                                                 exe.setMaxInnerIter(q);
+                                                 exe.setFormHessian(isFormHessian);
                                                  exe})
                                     .persist()
         println("count = " + rddTrain.count.toString)
@@ -59,6 +60,9 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
                             .map(_ / this.n.toDouble)
             println("Driver: model averaging is done!")
         }
+        else {
+            for (j <- 0 until this.d) this.w(j) = 0
+        }
         
         // record the objectives of each iteration
         val trainErrorArray: Array[Double] = new Array[Double](maxIter)
@@ -68,17 +72,23 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         var t1: Double = System.nanoTime()
         
         for (t <- 0 until maxIter) {
-            timeArray(t) = t1 - t0
+            timeArray(t) = (t1 - t0) * 1.0E-9
             this.update(rddTrain)
             t1 = System.nanoTime()
             trainErrorArray(t) = this.trainError
             objValArray(t) = this.objVal
+            if (this.gNorm < this.gNormTol) {
+                return (trainErrorArray.slice(0, t+1), 
+                        objValArray.slice(0, t+1), 
+                        timeArray.slice(0, t+1))
+            }
         }
         
-        (trainErrorArray, objValArray, timeArray.map(time => time*1.0E-9))
+        (trainErrorArray, objValArray, timeArray)
     }
 
-    /* Take one approximate Newton step.
+    /**
+     * Take one approximate Newton step.
      *
      * Update:
      *  1. this.w
@@ -89,21 +99,11 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
      * @return
      */
     def update(rddTrain: RDD[Executor]): Unit ={
-        // broadcast w
+        // compute gradient, objective value, and training errors
         val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
-        
-        // compute full gradient
-        var tmp: (Array[Double], Double, Double) = rddTrain.map(exe => exe.grad(wBc.value))
-                    .reduce((a, b) => ((a._1,b._1).zipped.map(_ + _), a._2+b._2, a._3+b._3))
-        this.g = tmp._1.map(_ / this.n.toDouble)
+        this.updateGrad(wBc, rddTrain)
         val gBc: Broadcast[Array[Double]] = this.sc.broadcast(this.g)
         
-        val gNorm: Double = g.map(a => a*a).sum
-        println("Squared norm of gradient is " + gNorm.toString)
-        
-        // update the training error and objective value
-        this.trainError = tmp._2 * (1.0 / this.n)
-        this.objVal = tmp._3 * (1.0 / this.n)
 
         // compute the averaged Newton direction
         this.p = rddTrain.map(exe => exe.newton(gBc.value.toArray))
@@ -119,13 +119,34 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
                             .map(_.objFunVal(wBc.value, pBc.value))
                             .reduce((a,b) => (a,b).zipped.map(_ + _))
                             .map(_ / this.n.toDouble)
-            
-            val pg: Double = (this.p, this.g).zipped.map(_ * _).sum
+            var pg: Double = 0.0
+            for (j <- 0 until this.d) pg += this.p(j) * this.g(j)
             eta = this.lineSearch(objVals, -0.1 * pg)
+            //println("Eta = " + eta.toString)
         }
         
-        // take approximate Newton step
-        this.w = (this.w, this.p).zipped.map((a, b) => a - eta*b)
+        // update w by taking approximate Newton step
+        for (j <- 0 until this.d) this.w(j) -= eta * this.p(j)
+    }
+            
+    /**
+     * Update this.g, this.gNorm, this.trainError, this.objVal
+     *
+     * @param wBc broadcast of this.w
+     * @param rddTrain RDD of training samples
+     * @return
+     */
+    def updateGrad(wBc: Broadcast[Array[Double]], rddTrain: RDD[Executor]): Unit = {
+        // compute full gradient
+        var tmp: (Array[Double], Double, Double) = rddTrain.map(exe => exe.grad(wBc.value))
+                    .reduce((a, b) => ((a._1,b._1).zipped.map(_ + _), a._2+b._2, a._3+b._3))
+        this.g = tmp._1.map(_ / this.n.toDouble)
+        this.gNorm = g.map(a => a*a).sum
+        //println("Squared norm of gradient is " + gNorm.toString)
+        
+        // update the training error and objective value
+        this.trainError = tmp._2 * (1.0 / this.n)
+        this.objVal = tmp._3 * (1.0 / this.n)
     }
     
 }
@@ -138,43 +159,6 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
  */
 class Executor(arr: Array[(Double, Array[Double])]) extends 
         distopt.quadratic.Common.Executor(arr) {
-    // parameters for CG
-    var q: Int = 0 // number of CG iterations
-    var isFormHessian: Boolean = true
-    var isXx: Boolean = false
-    var xx: DenseMatrix[Double] = DenseMatrix.zeros[Double](1, 1)
-    val cg: distopt.utils.CG = new distopt.utils.CG(this.d)
-            
-    def setParam(q0: Int, isFormHessian0: Boolean){
-        this.q = q0
-        this.isFormHessian = isFormHessian0
-        
-        if (this.isFormHessian) {
-            if (! this.isXx) {
-                this.xx = this.x * this.x.t
-                this.isXx = true
-            }
-        }
-    }
-    
-    /**
-     * Optimize the ridge regression problem 
-     * 0.5/s*||X w - y||_2^2 + 0.5*gamma*||w||_2^2
-     * using the local data.
-     *
-     * @return approximate solution to the local problem
-     */
-    def solve(): Array[Double] = {
-        var w: Array[Double] = Array.empty[Double]
-        if (this.isFormHessian) {
-            w = cg.solver2(this.xx, this.xy, this.sDouble * this.gamma, this.q) 
-        }
-        else {
-            w = cg.solver1(this.x, this.xy, this.sDouble * this.gamma, this.q)
-        }
-        w.map((a: Double) => a * this.sDouble)
-    }
-
     /**
      * Compute the local Newton direction
      *

@@ -23,7 +23,7 @@ object Utils {
      * @param numSplits if it is specificed, spark will change the number of partitions
      * @param isCoalesce if true, use coalesce(); otherwise use repartition()
      */
-    def loadLibsvmData(spark: SparkSession, filename: String, numSplits: Int = -1, isCoalesce: Boolean = true): RDD[(Float, Array[Double])] = {
+    def loadLibsvmData(spark: SparkSession, filename: String, numSplits: Int = -1, isCoalesce: Boolean = true): RDD[(Double, Array[Double])] = {
         // Loads data
         var rawdata = spark.read.format("libsvm")
                                 .load(filename)
@@ -44,14 +44,14 @@ object Utils {
             
         }
         
-        val labelVectorRdd: RDD[(Float, Array[Double])] = rawdata
-                .map(pair => (pair(0).toString.toFloat, Vectors.parse(pair(1).toString).toArray))
+        val labelVectorRdd: RDD[(Double, Array[Double])] = rawdata
+                .map(pair => (pair(0).toString.toDouble, Vectors.parse(pair(1).toString).toArray))
                 .persist()
         
         labelVectorRdd
     }
     
-    def meanAndMax(labelVectorRdd: RDD[(Float, Array[Double])]): (Double, Array[Double]) = {
+    def meanAndMax(labelVectorRdd: RDD[(Double, Array[Double])]): (Double, Array[Double]) = {
         val maxFeatures: Array[Double] = labelVectorRdd.map(pair => pair._2.map(math.abs))
                                 .reduce((a, b) => (a zip b).map(pair => math.max(pair._1, pair._2)) )
         val meanLabel: Double = labelVectorRdd.map(pair => pair._1)
@@ -59,7 +59,7 @@ object Utils {
         (meanLabel, maxFeatures)
     }
     
-    def normalize(sc: SparkContext, labelVectorRdd: RDD[(Float, Array[Double])], meanLabel: Double, maxFeatures: Array[Double]): RDD[(Double, Array[Double])] = {
+    def normalize(sc: SparkContext, labelVectorRdd: RDD[(Double, Array[Double])], meanLabel: Double, maxFeatures: Array[Double]): RDD[(Double, Array[Double])] = {
         val maxFeaturesBc = sc.broadcast(maxFeatures)
         val meanLabelBc = sc.broadcast(meanLabel)
         

@@ -7,23 +7,20 @@ import org.apache.spark.SparkConf
 import org.apache.spark.rdd._
 // spark-sql
 import org.apache.spark.sql.SparkSession
-// breeze
-import breeze.linalg._
-import breeze.numerics._
 // others
 import scala.math
-import java.io._
 
 
 import distopt.utils._
 import distopt.quadratic._
 
-object Experiment {
+object ExperimentRfm {
     def main(args: Array[String]) {
         // parse parameters from command line arguments
         val filename1: String = args(0).toString
         val filename2: String = args(1).toString
         val numSplits: Int = args(2).toInt
+        val numFeatures: Int = args(3).toInt
         
         println("Training file name: " + filename1)
         println("Test file name: " + filename2)
@@ -42,7 +39,7 @@ object Experiment {
         println("Time cost of starting Spark:  " + ((t1-t0)*1e-9).toString + "  seconds.")
         
         // load data
-        var (dataTrain, dataTest) = this.loaddata(spark, filename1, filename2, numSplits)
+        var (dataTrain, dataTest) = this.loaddata(spark, filename1, filename2, numSplits, numFeatures)
         
         
         var gamma: Double = 1E-6
@@ -75,7 +72,6 @@ object Experiment {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        /*
         maxIterOuter = 30
         maxIterInner = 300
         
@@ -90,7 +86,7 @@ object Experiment {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        */
+        
     }
     
     
@@ -109,7 +105,7 @@ object Experiment {
      * @param numSplits number of splits
      * @return rdds of training and testing data
     */
-    def loaddata(spark: SparkSession, filename1: String, filename2: String, numSplits: Int): (RDD[(Double, Array[Double])], RDD[(Double, Array[Double])]) = {
+    def loaddata(spark: SparkSession, filename1: String, filename2: String, numSplits: Int, numFeatures: Int): (RDD[(Double, Array[Double])], RDD[(Double, Array[Double])]) = {
         val t1 = System.nanoTime()
         
         // load training and test data
@@ -122,19 +118,28 @@ object Experiment {
                                                         .persist()
         println("There are " + dataTrain.count.toString + " training samples.")
         println("There are " + dataTest.count.toString + " test samples.")
-        val t2 = System.nanoTime()
-        println("Time cost of loading data:  " + ((t2-t1)*1e-9).toString + "  seconds.")
         
         // normlaize the data
         val (meanLabel, maxFeatures): (Double, Array[Double]) = Utils.meanAndMax(dataTrain)
         val sc: SparkContext = spark.sparkContext
         dataTrain = Utils.normalize(sc, dataTrain, meanLabel, maxFeatures)
         dataTest = Utils.normalize(sc, dataTest, meanLabel, maxFeatures)
+        val t2 = System.nanoTime()
+        println("Time cost of loading data:  " + ((t2-t1)*1e-9).toString + "  seconds.")
         
         
         // estimate the kernel parameter (if it is unknown)
         //val sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
         //println("Estimated sigma is " + sigma.toString)
+        
+        // random feature mapping
+        val sigmaYearPred: Double = 0.5510948938723474 // YearPrediction Dataset
+        dataTrain = dataTrain.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaYearPred)).persist()
+        dataTest = dataTest.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaYearPred)).persist()
+        println("There are " + dataTrain.count.toString + " training samples.")
+        println("There are " + dataTest.count.toString + " test samples.")
+        var t3 = System.nanoTime()
+        println("Time cost of random feature mapping:  " + ((t3-t2)*1e-9).toString + "  seconds.")
         
         
         println("####################################")

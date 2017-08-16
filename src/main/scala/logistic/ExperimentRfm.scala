@@ -77,30 +77,13 @@ object ExperimentRfm {
         
         
         
-        var gamma: Double = 1E-4
+        var gamma: Double = 1E-6
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
         this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
 
-        /*
-        gamma = 1E-6
-        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
-        this.trainTestAgd(gamma, sc, dataTrain, dataTest)
-        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
-
-        
-        gamma = 1E-8
-        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
-        this.trainTestAgd(gamma, sc, dataTrain, dataTest)
-        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
-        
-        */
         
         spark.stop()
     }
@@ -127,7 +110,6 @@ object ExperimentRfm {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        /*
         maxIterOuter = 30
         maxIterInner = 300
         
@@ -142,7 +124,6 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        */
     }
     
     
@@ -168,9 +149,8 @@ object ExperimentRfm {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        /*
         maxIterOuter = 10
-        maxIterInner = 200
+        maxIterInner = 300
         
         results = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
@@ -183,7 +163,6 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        */
     }
     
 
@@ -208,9 +187,8 @@ object ExperimentRfm {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        /*
         maxIterOuter = 10
-        maxIterInner = 200                                                                                                                  
+        maxIterInner = 300                                                                                                                  
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
         println("====================================================================")
@@ -222,7 +200,6 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        */
     }
     
     
@@ -230,7 +207,7 @@ object ExperimentRfm {
     def trainTestAgd(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val agd: Agd.Driver = new Agd.Driver(sc, dataTrain)
         
-        var maxIterOuter = 2000
+        var maxIterOuter = 3000
         
         var learningrate = 10.0
         var momentum = 0.9
@@ -261,6 +238,22 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        
+        
+        learningrate = 100.0
+        momentum = 0.95
+        
+        results = agd.train(gamma, maxIterOuter, learningrate, momentum)
+        println("\n ")
+        println("====================================================================")
+        println("Accelerated Gradient Descent (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString+ ", LearningRate=" + learningrate.toString + ", momentum=" + momentum.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = agd.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
     }
     
     
@@ -268,9 +261,9 @@ object ExperimentRfm {
     def trainTestLbfgs(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val lbfgs: Lbfgs.Driver = new Lbfgs.Driver(sc, dataTrain)
         
-        var maxIterOuter: Int = 200
+        var maxIterOuter: Int = 500
         
-        var numHistory: Int = 30
+        var numHistory: Int = 100
         
         var results: (Array[Double], Array[Double], Array[Double]) = lbfgs.train(gamma, maxIterOuter, numHistory)
         println("\n ")
@@ -285,7 +278,7 @@ object ExperimentRfm {
         println("\n ")
         
         
-        numHistory = 100
+        numHistory = 300
         
         results = lbfgs.train(gamma, maxIterOuter, numHistory)
         println("\n ")
