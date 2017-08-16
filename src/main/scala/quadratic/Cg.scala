@@ -1,4 +1,4 @@
-package distopt.quadratic.Giant
+package distopt.quadratic.Cg
 
 // spark-core
 import org.apache.spark.SparkContext
@@ -10,14 +10,13 @@ import breeze.linalg._
 import breeze.numerics._
 
 /**
- * Solve a ridge regression problem using GIANT with the local problems solved by CG. 
+ * Solve a ridge regression problem using conjugate gradient (CG) method. 
  * Model: 0.5*||X w - y||_2^2 + 0.5*gamma*||w||_2^2
  * 
  * @param sc SparkContext
  * @param data RDD of (label, feature)
- * @param isSearch is true if line search is used to determine the step size; otherwise use 1.0 as step size
  */
-class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boolean = false)
+class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])])
         extends distopt.quadratic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
     // initialize executors
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
@@ -28,12 +27,11 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
      *
      * @param gamma the regularization parameter
      * @param maxIter max number of iterations
-     * @param q number of CG iterations
      * @return trainErrorArray the training error in each iteration
      * @return objValArray the objective values in each iteration
      * @return timeArray the elapsed times counted at each iteration
      */
-    def train(gamma: Double, maxIter: Int, q: Int, isModelAvg: Boolean = false): (Array[Double], Array[Double], Array[Double]) = {
+    def train(gamma: Double, maxIter: Int, isModelAvg: Boolean = false): (Array[Double], Array[Double], Array[Double]) = {
         // decide whether to form the Hessian matrix
         val s: Double = this.n.toDouble / this.m.toDouble
         val cost1: Double = 0.2 * maxIter * q * s // CG without the Hessian formed
@@ -45,8 +43,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         
         // setup the executors for training
         val rddTrain: RDD[Executor] = this.rdd
-                                    .map(exe => {exe.setGamma(gamma);  
-                                                 exe.setMaxInnerIter(q);
+                                    .map(exe => {exe.setGamma(gamma);
                                                  exe.setFormHessian(isFormHessian);
                                                  exe})
                                     .persist()
@@ -101,6 +98,9 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
     def update(rddTrain: RDD[Executor]): Unit ={
         // compute gradient, objective value, and training errors
         val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
+        
+        
+        
         this.updateGrad(wBc, rddTrain)
         val gBc: Broadcast[Array[Double]] = this.sc.broadcast(this.g)
         
@@ -159,6 +159,15 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
  */
 class Executor(arr: Array[(Double, Array[Double])]) extends 
         distopt.quadratic.Common.Executor(arr) {
+    /**
+     * Compute X * X' * p.
+     * Here X is d-by-s and p is d-by-1.
+     */
+    def xxByP(pArray: Array[Double]): Array[Double] = {
+        val p: DenseVector[Double] = new DenseVector(pArray)
+        val xp: DenseVector[Double] = this.x.t * p
+        (this.x * xp).toArray
+    }
     /**
      * Compute the local Newton direction
      *
