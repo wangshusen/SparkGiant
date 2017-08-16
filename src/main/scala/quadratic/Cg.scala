@@ -32,23 +32,16 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])])
      * @return timeArray the elapsed times counted at each iteration
      */
     def train(gamma: Double, maxIter: Int, isModelAvg: Boolean = false): (Array[Double], Array[Double], Array[Double]) = {
-        // decide whether to form the Hessian matrix
-        val s: Double = this.n.toDouble / this.m.toDouble
-        val cost1: Double = 0.2 * maxIter * q * s // CG without the Hessian formed
-        val cost2: Double = s * this.d + 0.2 * maxIter * q * this.d // CG with the Hessian formed
-        var isFormHessian: Boolean = if(cost1 < cost2) false else true
-        
         println("There are " + this.rdd.count.toString + " executors.")
         val t0: Double = System.nanoTime()
         
         // setup the executors for training
         val rddTrain: RDD[Executor] = this.rdd
                                     .map(exe => {exe.setGamma(gamma);
-                                                 exe.setFormHessian(isFormHessian);
                                                  exe})
                                     .persist()
         println("count = " + rddTrain.count.toString)
-        println("Driver: executors are setup for training! gamma = " + gamma.toString + ", q = " + q.toString + ", isFormHessian = " + isFormHessian.toString)
+        println("Driver: executors are setup for training! gamma = " + gamma.toString)
         
         // initialize w by model averaging
         if (isModelAvg) {
@@ -74,11 +67,6 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])])
             t1 = System.nanoTime()
             trainErrorArray(t) = this.trainError
             objValArray(t) = this.objVal
-            if (this.gNorm < this.gNormTol) {
-                return (trainErrorArray.slice(0, t+1), 
-                        objValArray.slice(0, t+1), 
-                        timeArray.slice(0, t+1))
-            }
         }
         
         (trainErrorArray, objValArray, timeArray)
@@ -101,52 +89,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])])
         
         
         
-        this.updateGrad(wBc, rddTrain)
-        val gBc: Broadcast[Array[Double]] = this.sc.broadcast(this.g)
-        
-
-        // compute the averaged Newton direction
-        this.p = rddTrain.map(exe => exe.newton(gBc.value.toArray))
-                        .reduce((a,b) => (a,b).zipped.map(_ + _)) 
-                        .map(_ / this.n.toDouble)
-        val pBc: Broadcast[Array[Double]] = this.sc.broadcast(this.p)
-        
-        // search for a step size that leads to sufficient decrease
-        var eta = 1.0
-        if (isSearch) { 
-            // get the objective values f(w - eta*p) for all eta in the candidate list
-            val objVals: Array[Double] = rddTrain
-                            .map(_.objFunVal(wBc.value, pBc.value))
-                            .reduce((a,b) => (a,b).zipped.map(_ + _))
-                            .map(_ / this.n.toDouble)
-            var pg: Double = 0.0
-            for (j <- 0 until this.d) pg += this.p(j) * this.g(j)
-            eta = this.lineSearch(objVals, -0.1 * pg)
-            //println("Eta = " + eta.toString)
-        }
-        
         // update w by taking approximate Newton step
-        for (j <- 0 until this.d) this.w(j) -= eta * this.p(j)
-    }
-            
-    /**
-     * Update this.g, this.gNorm, this.trainError, this.objVal
-     *
-     * @param wBc broadcast of this.w
-     * @param rddTrain RDD of training samples
-     * @return
-     */
-    def updateGrad(wBc: Broadcast[Array[Double]], rddTrain: RDD[Executor]): Unit = {
-        // compute full gradient
-        var tmp: (Array[Double], Double, Double) = rddTrain.map(exe => exe.grad(wBc.value))
-                    .reduce((a, b) => ((a._1,b._1).zipped.map(_ + _), a._2+b._2, a._3+b._3))
-        this.g = tmp._1.map(_ / this.n.toDouble)
-        this.gNorm = g.map(a => a*a).sum
-        //println("Squared norm of gradient is " + gNorm.toString)
-        
-        // update the training error and objective value
-        this.trainError = tmp._2 * (1.0 / this.n)
-        this.objVal = tmp._3 * (1.0 / this.n)
+        //for (j <- 0 until this.d) this.w(j) -= eta * this.p(j)
     }
     
 }
