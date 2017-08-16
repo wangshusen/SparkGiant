@@ -14,7 +14,7 @@ DATA_TRAIN_FILE="$PROJ_HOME/data/YearPredictionMSD"
 DATA_TEST_FILE="$PROJ_HOME/data/YearPredictionMSD.t"
 
 NUM_SPLITS="63"
-NUM_FEATURE="100"
+NUM_FEATURES="100"
 
 module load spark
 ulimit -s unlimited

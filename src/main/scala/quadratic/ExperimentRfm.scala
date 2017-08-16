@@ -42,15 +42,13 @@ object ExperimentRfm {
         var (dataTrain, dataTest) = this.loaddata(spark, filename1, filename2, numSplits, numFeatures)
         
         
-        var gamma: Double = 1E-8
-        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        //this.trainTestCg(gamma, sc, dataTrain, dataTest)
+        var gamma: Double = 1E-6
+        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        this.trainTestCg(gamma, sc, dataTrain, dataTest)
         this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
         spark.stop()
     }
-    
-    
     
     
     
