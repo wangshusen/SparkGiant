@@ -34,6 +34,7 @@ class Driver(sc: SparkContext, n0: Long, d0: Int, m0: Long) {
     val n: Long = n0
     val d: Int = d0
     val m: Long = m0
+    val nInv: Double = 1.0 / n.toDouble
     val gNormTol: Double = 1.0E-18 * d.toDouble
     
     // variables

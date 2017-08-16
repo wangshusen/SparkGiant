@@ -2,7 +2,7 @@
 #SBATCH -p regular
 #SBATCH -N 8
 #SBATCH -C haswell
-#SBATCH -t 01:30:00
+#SBATCH -t 00:40:00
 #SBATCH -J wss_giant
 #SBATCH -L SCRATCH
 #SBATCH -e giant_job_%j.err
