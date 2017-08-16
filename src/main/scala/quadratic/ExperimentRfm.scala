@@ -42,8 +42,10 @@ object ExperimentRfm {
         var (dataTrain, dataTest) = this.loaddata(spark, filename1, filename2, numSplits, numFeatures)
         
         
-        var gamma: Double = 1E-6
-        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        var gamma: Double = 1E-8
+        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        //this.trainTestCg(gamma, sc, dataTrain, dataTest)
+        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
         spark.stop()
     }
@@ -72,6 +74,7 @@ object ExperimentRfm {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        /*
         maxIterOuter = 30
         maxIterInner = 300
         
@@ -86,9 +89,47 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        */
     }
     
+    
+    def trainTestCg(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
+        val cg: Cg.Driver = new Cg.Driver(sc, dataTrain)
+        
+        var maxIterOuter: Int = 500
+        
+        var results: (Array[Double], Array[Double], Array[Double]) = cg.train(gamma, maxIterOuter)
+        println("\n ")
+        println("====================================================================")
+        println("CG (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        var testError: Double = cg.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+    }
+    
+    
+    def trainTestLbfgs(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
+        val lbfgs: Lbfgs.Driver = new Lbfgs.Driver(sc, dataTrain)
+        
+        var maxIterOuter: Int = 200
+        var numHistory: Int = 100
+        
+        var results: (Array[Double], Array[Double], Array[Double]) = lbfgs.train(gamma, maxIterOuter, numHistory)
+        println("\n ")
+        println("====================================================================")
+        println("L-BFGS (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", NumHistory=" + numHistory.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        var testError: Double = lbfgs.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+    }
     
     
     def printAsTable(element1: Double, element2: Double, element3: Double): Unit = {

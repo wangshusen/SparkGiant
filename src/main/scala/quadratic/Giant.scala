@@ -16,12 +16,12 @@ import breeze.numerics._
  * @param sc SparkContext
  * @param data RDD of (label, feature)
  * @param isSearch is true if line search is used to determine the step size; otherwise use 1.0 as step size
+ * @param isModelAvg is true if model averaging is used to initialize w
  */
-class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boolean = false)
+class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boolean = false, isModelAvg: Boolean = false)
         extends distopt.quadratic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
     // initialize executors
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
-    println("Driver: executors are initialized using the input data!")
 
     /**
      * Train a ridge regression model using GIANT with the local problems solved by fixed number of CG steps.
@@ -33,7 +33,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
      * @return objValArray the objective values in each iteration
      * @return timeArray the elapsed times counted at each iteration
      */
-    def train(gamma: Double, maxIter: Int, q: Int, isModelAvg: Boolean = false): (Array[Double], Array[Double], Array[Double]) = {
+    def train(gamma: Double, maxIter: Int, q: Int): (Array[Double], Array[Double], Array[Double]) = {
         // decide whether to form the Hessian matrix
         val s: Double = this.n.toDouble / this.m.toDouble
         val cost1: Double = 0.2 * maxIter * q * s // CG without the Hessian formed
@@ -54,7 +54,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         println("Driver: executors are setup for training! gamma = " + gamma.toString + ", q = " + q.toString + ", isFormHessian = " + isFormHessian.toString)
         
         // initialize w by model averaging
-        if (isModelAvg) {
+        if (this.isModelAvg) {
             this.w = rddTrain.map(_.solve())
                             .reduce((a,b) => (a,b).zipped.map(_ + _))
                             .map(_ / this.n.toDouble)
@@ -118,7 +118,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
             val objVals: Array[Double] = rddTrain
                             .map(_.objFunVal(wBc.value, pBc.value))
                             .reduce((a,b) => (a,b).zipped.map(_ + _))
-                            .map(_ / this.n.toDouble)
+                            .map(_ * this.nInv)
             var pg: Double = 0.0
             for (j <- 0 until this.d) pg += this.p(j) * this.g(j)
             eta = this.lineSearch(objVals, -0.1 * pg)

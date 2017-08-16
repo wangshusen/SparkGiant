@@ -1,4 +1,4 @@
-package distopt.logistic.Lbfgs
+package distopt.quadratic.Lbfgs
 
 // spark-core
 import org.apache.spark.SparkContext
@@ -12,17 +12,15 @@ import breeze.numerics._
 import scala.collection.mutable.Queue
 
 /**
- * Solve a logistic regression problem using L-BFGS 
- * Objective function is the mean of 
- * f_j (w) = log (1 + exp(-z_j)) + 0.5*gamma*||w||_2^2, 
- * where z_j = <x_j, w>.
+ * Solve a ridge regression problem using conjugate gradient (CG) method. 
+ * Model: 0.5*||X w - y||_2^2 + 0.5*gamma*||w||_2^2
  * 
  * @param sc SparkContext
  * @param data RDD of (label, feature)
  * @param isModelAvg is true if model averaging is used to initialize w
  */
 class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: Boolean = false)
-        extends distopt.logistic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
+        extends distopt.quadratic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
     // initialize executors
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
 
@@ -34,9 +32,9 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
     var sBuffer: Queue[DenseVector[Double]] = new Queue[DenseVector[Double]]
     var yBuffer: Queue[DenseVector[Double]] = new Queue[DenseVector[Double]]
     var syBuffer: Queue[Double] = new Queue[Double]
-            
+
     /**
-     * Train a logistic regression model using L-BFGS.
+     * Train a ridge regression model using GIANT with the local problems solved by fixed number of CG steps.
      *
      * @param gamma the regularization parameter
      * @param maxIter max number of iterations
@@ -55,19 +53,17 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
                                     .map(exe => {exe.setGamma(gamma);
                                                  exe})
                                     .persist()
+        println("count = " + rddTrain.count.toString)
         
         // initialize w by model averaging
-        if (isModelAvg) {
-            val q: Int = 100
-            val learningRate: Double = 1.0
-            this.w = rddTrain.map(_.solve(learningRate, q))
+        if (this.isModelAvg) {
+            this.w = rddTrain.map(_.solve())
                             .reduce((a,b) => (a,b).zipped.map(_ + _))
-                            .map(_ * this.nInv)
+                            .map(_ / this.n.toDouble)
             println("Driver: model averaging is done!")
-            
         }
         else {
-            for (j <- 0 until this.d) this.w(j) = 0.0
+            for (j <- 0 until this.d) this.w(j) = 0
         }
         
         // initialize the buffers and gradient
@@ -116,6 +112,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         wBc
     }
 
+    
+            
     /**
      * Take one L-BFGS step.
      *
@@ -179,7 +177,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         for (j <- 0 until this.d) this.gnew(j) = g(j)
         
         this.gNorm = g.map(a => a*a).sum
-        //println("Driver: squared norm of gradient is " + this.gNorm.toString)
+        println("Driver: squared norm of gradient is " + this.gNorm.toString)
     }
     
     /**
@@ -253,22 +251,19 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
 }
 
 
-
 /**
  * Perform local computations. 
  * 
  * @param arr array of (label, feature) pairs
  */
 class Executor(arr: Array[(Double, Array[Double])]) extends 
-        distopt.logistic.Common.Executor(arr) {
+        distopt.quadratic.Common.Executor(arr) {
     val pgArray: Array[Double] = new Array[Double](this.numStepSizes)
             
     /**
      * Compute: 
-     * (1) the sum of the objective function
-     *      f_j (w) = log (1 + exp(-z_j)) + 0.5*gamma*||w||_2^2, 
-     *      where z_j = <x_j, w-eta*p>,
-     * (2) the inner products of p and the gradients of the above function,
+     * (1) the local objective functions,
+     * (2) the inner products of p and the gradients of the local objective functions,
      * for all eta in the candidate set.
      *
      * @param w current solution
@@ -283,14 +278,13 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
         
         for (idx <- 0 until this.numStepSizes) {
             wTmp := w - this.stepSizes(idx) * p
-            val zexp: Array[Double] = (this.x.t * wTmp).toArray.map((a: Double) => math.exp(a))
+            var res: DenseVector[Double] = this.x.t * wTmp - this.y
             // objective
-            val loss: Double = zexp.map((a: Double) => math.log(1.0 + 1.0 / a)).sum
+            val trainError: Double = res.toArray.map(a => a*a).sum
             val wNorm: Double = wTmp.toArray.map(a => a*a).sum
-            this.objValArray(idx) = loss + sgamma * wNorm * 0.5
+            this.objValArray(idx) = (trainError + sgamma * wNorm) * 0.5
             // gradient
-            val c: DenseVector[Double] = new DenseVector(zexp.map((a: Double) => -1.0 / (1.0 + a)))
-            val g: DenseVector[Double] = this.x * c + sgamma * wTmp
+            val g: DenseVector[Double] = this.x * res + sgamma * wTmp
             // the inner product <p, g>
             var pg: Double = 0.0
             for (j <- 0 until this.d) pg += p(j) * g(j)
@@ -299,6 +293,6 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
         
         (this.objValArray, this.pgArray)
     }
-        
 }
+
 

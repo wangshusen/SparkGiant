@@ -112,7 +112,7 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     var gamma: Double = 0.0
     
     // parameters for CG
-    var q: Int = 0 // number of CG iterations
+    var q: Int = 100 // number of CG iterations
     var isFormHessian: Boolean = true
     var isXx: Boolean = false
     var xx: DenseMatrix[Double] = DenseMatrix.zeros[Double](1, 1)

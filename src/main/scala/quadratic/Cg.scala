@@ -15,12 +15,12 @@ import breeze.numerics._
  * 
  * @param sc SparkContext
  * @param data RDD of (label, feature)
+ * @param isModelAvg is true if model averaging is used to initialize w
  */
-class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])])
+class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: Boolean = false)
         extends distopt.quadratic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
     // initialize executors
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
-    println("Driver: executors are initialized using the input data!")
 
     /**
      * Train a ridge regression model using GIANT with the local problems solved by fixed number of CG steps.
@@ -31,7 +31,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])])
      * @return objValArray the objective values in each iteration
      * @return timeArray the elapsed times counted at each iteration
      */
-    def train(gamma: Double, maxIter: Int, isModelAvg: Boolean = false): (Array[Double], Array[Double], Array[Double]) = {
+    def train(gamma: Double, maxIter: Int): (Array[Double], Array[Double], Array[Double]) = {
         println("There are " + this.rdd.count.toString + " executors.")
         val t0: Double = System.nanoTime()
         
@@ -41,10 +41,9 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])])
                                                  exe})
                                     .persist()
         println("count = " + rddTrain.count.toString)
-        println("Driver: executors are setup for training! gamma = " + gamma.toString)
         
         // initialize w by model averaging
-        if (isModelAvg) {
+        if (this.isModelAvg) {
             this.w = rddTrain.map(_.solve())
                             .reduce((a,b) => (a,b).zipped.map(_ + _))
                             .map(_ / this.n.toDouble)
@@ -54,45 +53,80 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])])
             for (j <- 0 until this.d) this.w(j) = 0
         }
         
+        // setup buffers
+        val ngamma = this.n * gamma
+        val xy: Array[Double] = rddTrain.map(_.xy.toArray)
+                                    .reduce((a,b) => (a,b).zipped.map(_ + _))
+        val r: DenseVector[Double] = DenseVector.zeros[Double](this.d)
+        val p: DenseVector[Double] = DenseVector.zeros[Double](this.d)
+        val ap: DenseVector[Double] = DenseVector.zeros[Double](this.d)
+        val wnew: DenseVector[Double] = new DenseVector(this.w)
+        val xxw: DenseVector[Double] = new DenseVector(this.xxByP(this.w, rddTrain))
+        r := (new DenseVector(xy)) - ngamma * wnew - xxw
+        p := r
+        var rsold: Double = r.toArray.map(x => x*x).sum
+        var rsnew: Double = 0.0
+        var alpha: Double = 0.0
+        
         // record the objectives of each iteration
         val trainErrorArray: Array[Double] = new Array[Double](maxIter)
         val objValArray: Array[Double] = new Array[Double](maxIter)
         val timeArray: Array[Double] = new Array[Double](maxIter)
         
         var t1: Double = System.nanoTime()
+        var i: Int = -1
         
         for (t <- 0 until maxIter) {
-            timeArray(t) = (t1 - t0) * 1.0E-9
-            this.update(rddTrain)
-            t1 = System.nanoTime()
-            trainErrorArray(t) = this.trainError
-            objValArray(t) = this.objVal
+            var xxp: DenseVector[Double] = new DenseVector(this.xxByP(p.toArray, rddTrain))
+            ap := ngamma * p + xxp
+            var pap: Double = 0.0
+            for (j <- 0 until d) pap += p(j) * ap(j)
+            alpha = rsold / pap
+            wnew += alpha * p
+            r -= alpha * ap
+            rsnew = r.toArray.map(a => a*a).sum
+            
+            if (t % 10 == 0) { // record the objective values and training errors
+                i += 1
+                timeArray(i) = (t1 - t0) * 1.0E-9
+                t1 = System.nanoTime()
+                this.objs(wnew.toArray, rddTrain)
+                trainErrorArray(i) = this.trainError
+                objValArray(i) = this.objVal
+            }
+            if (rsnew < this.gNormTol) {
+                return (trainErrorArray.slice(0, i+1), 
+                        objValArray.slice(0, i+1), 
+                        timeArray.slice(0, i+1))
+            }
+            p *= rsnew / rsold
+            p += r
+            rsold = rsnew
         }
         
         (trainErrorArray, objValArray, timeArray)
     }
+    
+    /**
+     * Compute X * X' * p, where X is d-by-n and p is d-by-1.
+     */
+    def xxByP(pArray: Array[Double], rddTrain: RDD[Executor]): Array[Double] = {
+        val pBc: Broadcast[Array[Double]] = this.sc.broadcast(pArray)
+        val xxp: Array[Double] = rddTrain.map(_.xxByP(pBc.value))
+                                    .reduce((a,b) => (a,b).zipped.map(_ + _))
+        xxp
+    }
 
     /**
-     * Take one approximate Newton step.
-     *
-     * Update:
-     *  1. this.w
-     *  2. this.trainError
-     *  3. this.objVal
-     *
-     * @param rddTrain RDD of executors
-     * @return
+     * Compute the objective value and training error.
      */
-    def update(rddTrain: RDD[Executor]): Unit ={
-        // compute gradient, objective value, and training errors
-        val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
-        
-        
-        
-        // update w by taking approximate Newton step
-        //for (j <- 0 until this.d) this.w(j) -= eta * this.p(j)
+    def objs(wArray: Array[Double], rddTrain: RDD[Executor]): Unit = {
+        val wBc: Broadcast[Array[Double]] = this.sc.broadcast(wArray)
+        val tmp: (Double, Double) = rddTrain.map(_.objs(wBc.value))
+                                    .reduce((a,b) => (a._1+b._1, a._2+b._2))
+        this.objVal = tmp._1 * this.nInv
+        this.trainError = tmp._2 * this.nInv
     }
-    
 }
 
 
@@ -112,23 +146,21 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
         val xp: DenseVector[Double] = this.x.t * p
         (this.x * xp).toArray
     }
+            
     /**
-     * Compute the local Newton direction
-     *
-     * @param gArray the full gradient
-     * @return the local Newton direction scaled by s
+     * Compute the local objective value and training error.
      */
-    def newton(gArray: Array[Double]): Array[Double] = {
-        val g: DenseVector[Double] = new DenseVector(gArray)
-        var p: Array[Double] = Array.empty[Double]
-        if (this.isFormHessian) {
-            p = cg.solver2(this.xx, this.sDouble * g, this.sDouble * this.gamma, this.q)
-        }
-        else {
-            p = cg.solver1(this.x, this.sDouble * g, this.sDouble * this.gamma, this.q)
-        }
-        p.map((a: Double) => a * this.sDouble)
+    def objs(wArray: Array[Double]): (Double, Double) = {
+        val w: DenseVector[Double] = new DenseVector(wArray)
+        // training error
+        var res: DenseVector[Double] = this.x.t * w - this.y
+        val trainError: Double = res.toArray.map(a => a*a).sum
+        // objective function value
+        val wNorm: Double = wArray.map(a => a*a).sum
+        val objVal: Double = (trainError + this.sDouble * this.gamma * wNorm) / 2
+        (objVal, trainError)
     }
+            
 }
 
 
