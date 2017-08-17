@@ -19,7 +19,7 @@ import breeze.numerics._
  */
 class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: Boolean = false)
         extends distopt.quadratic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
-    val isMute: Boolean = false
+    val isMute: Boolean = true
     var rho: Double = 1.0
     var gamma: Double = 1.0
     val mInv: Double = 1.0 / this.m

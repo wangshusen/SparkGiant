@@ -42,11 +42,11 @@ object ExperimentRfm {
         var (dataTrain, dataTest) = this.loaddata(spark, filename1, filename2, numSplits, numFeatures)
         
         
-        var gamma: Double = 1E-6
-        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        var gamma: Double = 1E-8
+        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
-        //this.trainTestCg(gamma, sc, dataTrain, dataTest)
-        //this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+        this.trainTestCg(gamma, sc, dataTrain, dataTest)
+        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
         spark.stop()
     }
@@ -57,8 +57,8 @@ object ExperimentRfm {
         val isSearch: Boolean = true
         val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
         
-        var maxIterOuter: Int = 60
-        var maxIterInner: Int = 100
+        var maxIterOuter: Int = 100
+        var maxIterInner: Int = 30
         
         var results: (Array[Double], Array[Double], Array[Double]) = giant.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")
@@ -72,9 +72,9 @@ object ExperimentRfm {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        /*
-        maxIterOuter = 30
-        maxIterInner = 300
+        
+        maxIterOuter = 50
+        maxIterInner = 100
         
         results = giant.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")
@@ -87,13 +87,13 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        */
+        
     }
     
     def trainTestAdmm(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val admm: Admm.Driver = new Admm.Driver(sc, dataTrain)
         
-        var maxIterOuter: Int = 60
+        var maxIterOuter: Int = 40
         var maxIterInner: Int = 100
         
         var results: (Array[Double], Array[Double], Array[Double]) = admm.train(gamma, maxIterOuter, maxIterInner)
@@ -104,6 +104,21 @@ object ExperimentRfm {
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         var testError: Double = admm.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        maxIterOuter = 20
+        maxIterInner = 300
+        
+        results = admm.train(gamma, maxIterOuter, maxIterInner)
+        println("\n ")
+        println("====================================================================")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = admm.predict(dataTest)
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
@@ -143,6 +158,21 @@ object ExperimentRfm {
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         var testError: Double = lbfgs.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        maxIterOuter = 200
+        numHistory = 300
+        
+        results = lbfgs.train(gamma, maxIterOuter, numHistory)
+        println("\n ")
+        println("====================================================================")
+        println("L-BFGS (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", NumHistory=" + numHistory.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = lbfgs.predict(dataTest)
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")

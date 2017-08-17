@@ -20,7 +20,7 @@ import breeze.numerics._
  */
 class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boolean = false, isModelAvg: Boolean = false)
         extends distopt.quadratic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
-    val isMute: Boolean = false
+    val isMute: Boolean = true
     // initialize executors
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
 
@@ -37,8 +37,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
     def train(gamma: Double, maxIter: Int, q: Int): (Array[Double], Array[Double], Array[Double]) = {
         // decide whether to form the Hessian matrix
         val s: Double = this.n.toDouble / this.m.toDouble
-        val cost1: Double = 0.2 * maxIter * q * s // CG without the Hessian formed
-        val cost2: Double = s * this.d + 0.2 * maxIter * q * this.d // CG with the Hessian formed
+        val cost1: Double = 0.05 * maxIter * q * s // CG without the Hessian formed
+        val cost2: Double = s * this.d + 0.05 * maxIter * q * this.d // CG with the Hessian formed
         var isFormHessian: Boolean = if(cost1 < cost2) false else true
         
         val t0: Double = System.nanoTime()
