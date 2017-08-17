@@ -21,6 +21,8 @@ import scala.collection.mutable.Queue
  */
 class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: Boolean = false)
         extends distopt.quadratic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
+    val isMute: Boolean = false
+            
     // initialize executors
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
 
@@ -88,6 +90,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
                         objValArray.slice(0, t+1), 
                         timeArray.slice(0, t+1))
             }
+            if (!this.isMute) println("Iteration " + t.toString + ":\t objective value is " + this.objVal.toString + ",\t time: " + timeArray(t).toString)
         }
         
         (trainErrorArray, objValArray, timeArray)

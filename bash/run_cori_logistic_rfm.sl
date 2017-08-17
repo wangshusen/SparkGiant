@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -p regular
-#SBATCH -N 8
+#SBATCH -N 10
 #SBATCH -C haswell
-#SBATCH -t 04:00:00
+#SBATCH -t 06:00:00
 #SBATCH -J giant_logistic
 #SBATCH -L SCRATCH
 #SBATCH -e giant_job_%j.err
@@ -12,7 +12,7 @@ PROJ_HOME="$SCRATCH/SparkGiant"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 DATA_FILE="$PROJ_HOME/data/covtype_perm"
 
-NUM_SPLITS="63"
+NUM_SPLITS="59"
 NUM_FEATURES="10000"
 
 module load spark
@@ -22,6 +22,10 @@ start-all.sh
 spark-submit \
     --class "distopt.logistic.ExperimentRfm" \
     --num-executors $NUM_SPLITS \
+    --driver-cores 5 \
+    --executor-cores 5 \
+    --driver-memory 20G \
+    --executor-memory 20G \
     $JAR_FILE $DATA_FILE $NUM_FEATURES $NUM_SPLITS
   
 stop-all.sh

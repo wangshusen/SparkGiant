@@ -19,6 +19,8 @@ import breeze.numerics._
  */
 class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: Boolean = false)
         extends distopt.quadratic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
+    val isMute: Boolean = false
+            
     // initialize executors
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
 
@@ -93,6 +95,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
                 this.objs(wnew.toArray, rddTrain)
                 trainErrorArray(i) = this.trainError
                 objValArray(i) = this.objVal
+                if (!this.isMute) println("Iteration " + t.toString + ":\t objective value is " + this.objVal.toString + ",\t time: " + timeArray(t).toString)
             }
             if (rsnew < this.gNormTol) {
                 return (trainErrorArray.slice(0, i+1), 

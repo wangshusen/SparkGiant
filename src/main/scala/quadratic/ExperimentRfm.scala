@@ -42,10 +42,11 @@ object ExperimentRfm {
         var (dataTrain, dataTest) = this.loaddata(spark, filename1, filename2, numSplits, numFeatures)
         
         
-        var gamma: Double = 1E-6
-        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        this.trainTestCg(gamma, sc, dataTrain, dataTest)
-        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+        var gamma: Double = 1E-4
+        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        //this.trainTestCg(gamma, sc, dataTrain, dataTest)
+        //this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
         spark.stop()
     }
@@ -55,7 +56,6 @@ object ExperimentRfm {
     def trainTestGiant(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val isSearch: Boolean = true
         val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
-        
         
         var maxIterOuter: Int = 60
         var maxIterInner: Int = 100
@@ -88,6 +88,25 @@ object ExperimentRfm {
         println("Test error is " + testError.toString)
         println("\n ")
         */
+    }
+    
+    def trainTestAdmm(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
+        val admm: Admm.Driver = new Admm.Driver(sc, dataTrain)
+        
+        var maxIterOuter: Int = 30
+        var maxIterInner: Int = 500
+        
+        var results: (Array[Double], Array[Double], Array[Double]) = admm.train(gamma, maxIterOuter, maxIterInner)
+        println("\n ")
+        println("====================================================================")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        var testError: Double = admm.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
     }
     
     

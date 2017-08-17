@@ -125,6 +125,7 @@ object ExperimentRfm {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        /*
         maxIterOuter = 15
         maxIterInner = 900
         
@@ -139,6 +140,7 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        */
     }
     
     
@@ -178,7 +180,7 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        /*
         maxIterOuter = 5
         maxIterInner = 900
         
@@ -193,6 +195,7 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        */
     }
     
 
@@ -230,7 +233,7 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        /*
         maxIterOuter = 5
         maxIterInner = 900                                                                                                                  
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
@@ -244,6 +247,7 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        */
     }
     
     
