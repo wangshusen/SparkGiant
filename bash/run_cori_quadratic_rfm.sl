@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -p regular
-#SBATCH -N 10
+#SBATCH -N 50
 #SBATCH -C haswell
-#SBATCH -t 03:00:00
+#SBATCH -t 00:30:00
 #SBATCH -J giant_quadratic
 #SBATCH -L SCRATCH
 #SBATCH -e giant_job_%j.err
@@ -13,7 +13,7 @@ JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 DATA_TRAIN_FILE="$PROJ_HOME/data/YearPredictionMSD"
 DATA_TEST_FILE="$PROJ_HOME/data/YearPredictionMSD.t"
 
-NUM_SPLITS="59"
+NUM_SPLITS="299"
 NUM_FEATURES="10000"
 
 module load spark

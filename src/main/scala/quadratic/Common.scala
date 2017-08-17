@@ -15,7 +15,7 @@ import scala.math
  * Constants common to driver and executors
  */
 object Constants {
-    val numStepSizes: Int = 10
+    val numStepSizes: Int = 3
     val baseStepSizes: Double = 4.0
 }
 

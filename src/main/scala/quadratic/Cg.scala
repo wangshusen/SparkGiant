@@ -105,7 +105,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
             rsold = rsnew
         }
         
-        (trainErrorArray, objValArray, timeArray)
+        (trainErrorArray.slice(0, i+1), objValArray.slice(0, i+1), timeArray.slice(0, i+1))
     }
     
     /**

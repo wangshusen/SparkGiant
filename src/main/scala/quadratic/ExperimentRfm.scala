@@ -46,7 +46,7 @@ object ExperimentRfm {
         dataTest.count
         
         
-        var gamma: Double = 1E-10
+        var gamma: Double = 1E-8
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestCg(gamma, sc, dataTrain, dataTest)
@@ -61,8 +61,8 @@ object ExperimentRfm {
         val isSearch: Boolean = true
         val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
         
-        var maxIterOuter: Int = 100
-        var maxIterInner: Int = 30
+        var maxIterOuter: Int = 200
+        var maxIterInner: Int = 10
         
         var results: (Array[Double], Array[Double], Array[Double]) = giant.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")
@@ -72,6 +72,22 @@ object ExperimentRfm {
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         var testError: Double = giant.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        
+        maxIterOuter = 50
+        maxIterInner = 100
+        
+        results = giant.train(gamma, maxIterOuter, maxIterInner)
+        println("\n ")
+        println("====================================================================")
+        println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = giant.predict(dataTest)
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
