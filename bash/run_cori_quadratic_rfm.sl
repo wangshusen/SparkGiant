@@ -2,7 +2,7 @@
 #SBATCH -p regular
 #SBATCH -N 10
 #SBATCH -C haswell
-#SBATCH -t 01:00:00
+#SBATCH -t 03:00:00
 #SBATCH -J giant_quadratic
 #SBATCH -L SCRATCH
 #SBATCH -e giant_job_%j.err
@@ -14,7 +14,7 @@ DATA_TRAIN_FILE="$PROJ_HOME/data/YearPredictionMSD"
 DATA_TEST_FILE="$PROJ_HOME/data/YearPredictionMSD.t"
 
 NUM_SPLITS="59"
-NUM_FEATURES="1000"
+NUM_FEATURES="10000"
 
 module load spark
 ulimit -s unlimited
