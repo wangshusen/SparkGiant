@@ -42,7 +42,7 @@ object ExperimentRfm {
         var (dataTrain, dataTest) = this.loaddata(spark, filename1, filename2, numSplits, numFeatures)
         
         
-        var gamma: Double = 1E-4
+        var gamma: Double = 1E-6
         //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         //this.trainTestCg(gamma, sc, dataTrain, dataTest)
@@ -93,8 +93,8 @@ object ExperimentRfm {
     def trainTestAdmm(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val admm: Admm.Driver = new Admm.Driver(sc, dataTrain)
         
-        var maxIterOuter: Int = 100
-        var maxIterInner: Int = 500
+        var maxIterOuter: Int = 60
+        var maxIterInner: Int = 100
         
         var results: (Array[Double], Array[Double], Array[Double]) = admm.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")

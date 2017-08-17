@@ -77,7 +77,7 @@ object ExperimentRfm {
         
         
         
-        var gamma: Double = 1E-6
+        var gamma: Double = 1E-4
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
         this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
@@ -95,8 +95,8 @@ object ExperimentRfm {
         val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
         
         
-        var maxIterOuter: Int = 60
-        var maxIterInner: Int = 100
+        var maxIterOuter: Int = 120
+        var maxIterInner: Int = 30
         
         var results: (Array[Double], Array[Double], Array[Double]) = giant.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")
@@ -110,6 +110,23 @@ object ExperimentRfm {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        
+        maxIterOuter = 60
+        maxIterInner = 100
+        
+        results = giant.train(gamma, maxIterOuter, maxIterInner)
+        println("\n ")
+        println("====================================================================")
+        println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = giant.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        /*
         maxIterOuter = 30
         maxIterInner = 300
         
@@ -125,7 +142,6 @@ object ExperimentRfm {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        /*
         maxIterOuter = 15
         maxIterInner = 900
         
@@ -151,8 +167,8 @@ object ExperimentRfm {
         
         var learningrate = 10.0
         
-        var maxIterOuter = 20
-        var maxIterInner = 100
+        var maxIterOuter = 40
+        var maxIterInner = 30
         
         var results: (Array[Double], Array[Double], Array[Double]) = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
@@ -166,6 +182,22 @@ object ExperimentRfm {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        maxIterOuter = 20
+        maxIterInner = 100
+        
+        results = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
+        println("\n ")
+        println("====================================================================")
+        println("DANE (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = dane.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        /*
         maxIterOuter = 10
         maxIterInner = 300
         
@@ -180,7 +212,6 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        /*
         maxIterOuter = 5
         maxIterInner = 900
         
@@ -206,8 +237,8 @@ object ExperimentRfm {
         
         var learningrate = 10.0
         
-        var maxIterOuter = 20
-        var maxIterInner = 100                                                                                                                  
+        var maxIterOuter = 40
+        var maxIterInner = 30                                                                                                                  
         var results: (Array[Double], Array[Double], Array[Double]) = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
         println("====================================================================")
@@ -220,6 +251,21 @@ object ExperimentRfm {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        maxIterOuter = 20
+        maxIterInner = 100                                                                                                                  
+        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
+        println("\n ")
+        println("====================================================================")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = admm.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        /*
         maxIterOuter = 10
         maxIterInner = 300                                                                                                                  
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
@@ -233,7 +279,7 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        /*
+        
         maxIterOuter = 5
         maxIterInner = 900                                                                                                                  
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
@@ -287,7 +333,7 @@ object ExperimentRfm {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        
+        /*
         learningrate = 100.0
         momentum = 0.99
         
@@ -302,6 +348,7 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        */
     }
     
     
@@ -339,6 +386,7 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        
     }
     
     
