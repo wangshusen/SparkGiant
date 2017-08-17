@@ -24,10 +24,10 @@ class CG(d: Int) {
      * @param maxiter max number of iterations
      * @return w the solution
      */
-    def solver1(a: DenseMatrix[Double], b: DenseVector[Double], lam: Double, maxiter: Int = 20): Array[Double] = {
+    def solver1(a: DenseMatrix[Double], b: DenseVector[Double], lam: Double, maxiter: Int = 20, w: DenseVector[Double] = DenseVector.zeros[Double](this.d)): Array[Double] = {
         val tol: Double = this.cgTol * math.sqrt(b.toArray.map(x => x*x).sum)
         val w: DenseVector[Double] = DenseVector.zeros[Double](this.d)
-        this.r := b //- lam * w - a * (a.t * w)
+        this.r := b - lam * w - a * (a.t * w)
         this.p := r
         var rsold: Double = this.r.toArray.map(x => x*x).sum
         var rsnew: Double = 0.0
@@ -65,11 +65,11 @@ class CG(d: Int) {
      * @param maxiter max number of iterations
      * @return w the solution
      */
-    def solver2(h: DenseMatrix[Double], b: DenseVector[Double], lam: Double, maxiter: Int = 20): Array[Double] = {
+    def solver2(h: DenseMatrix[Double], b: DenseVector[Double], lam: Double, maxiter: Int = 20, w: DenseVector[Double] = DenseVector.zeros[Double](this.d)): Array[Double] = {
         val d: Int = h.rows
         val tol: Double = this.cgTol * math.sqrt(b.toArray.map(x => x*x).sum)
-        val w: DenseVector[Double] = DenseVector.zeros[Double](this.d)
-        this.r := b //- lam * w - h * w
+        //val w: DenseVector[Double] = DenseVector.zeros[Double](this.d)
+        this.r := b - lam * w - h * w
         this.p := this.r
         var rsold: Double = r.toArray.map(a => a*a).sum
         var rsnew: Double = 0.0

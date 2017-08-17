@@ -93,7 +93,7 @@ object ExperimentRfm {
     def trainTestAdmm(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val admm: Admm.Driver = new Admm.Driver(sc, dataTrain)
         
-        var maxIterOuter: Int = 30
+        var maxIterOuter: Int = 100
         var maxIterInner: Int = 500
         
         var results: (Array[Double], Array[Double], Array[Double]) = admm.train(gamma, maxIterOuter, maxIterInner)

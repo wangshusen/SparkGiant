@@ -46,6 +46,10 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
      * @return timeArray the elapsed times counted at each iteration
      */
     def train(gamma: Double, maxIter: Int, q: Int): (Array[Double], Array[Double], Array[Double]) = {
+        this.gamma = gamma
+        val rho: Double = 0.1 * gamma
+        this.rho = rho
+        
         val t0: Double = System.nanoTime()
         
         // decide whether to form the Hessian matrix
@@ -92,7 +96,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
             if (!this.isMute) println("Iteration " + t.toString + ":\t objective value is " + this.objVal.toString + ",\t time: " + timeArray(t).toString)
         }
         
-        for (j <- 0 until this.d) this.w(j) = this.u(j)
+        //for (j <- 0 until this.d) this.w(j) = this.u(j)
         
         (trainErrorArray, objValArray, timeArray)
     }
@@ -115,24 +119,28 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
         val uBc: Broadcast[Array[Double]] = this.sc.broadcast(this.u)
         val wBc: Broadcast[Array[Array[Double]]] = this.sc.broadcast(this.wArrays)
         val rhoBc: Broadcast[Double] = this.sc.broadcast(this.rho)
-        
-        // update w
-        val tmp: Array[(Int, Array[Double], Double, Double)] = rddTrain
-                        .map(exe => exe.updateW(aBc.value, uBc.value, wBc.value, rhoBc.value))
-                        .collect
-        this.wArrays = tmp.map(tuple => (tuple._1, tuple._2))
-                        .sortWith(_._1 < _._1)
-                        .map((pair: (Int, Array[Double])) => pair._2)
+        val wAvgBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
         
         // update the objective value and training error
-        this.objVal = (tmp.map(tuple => tuple._3).sum) * this.nInv
-        this.trainError = (tmp.map(tuple => tuple._4).sum) * this.nInv
+        val (ov, te): (Double, Double) = rddTrain
+                        .map(exe => exe.objs(uBc.value))
+                        //.map(exe => exe.objs(wAvgBc.value))
+                        .reduce((pair1, pair2) => (pair1._1+pair2._1, pair1._2+pair2._2))
+        this.objVal = ov * this.nInv
+        this.trainError = te * this.nInv
+        
+        // update w
+        val tmp: Array[(Int, Array[Double])] = rddTrain
+                        .map(exe => exe.updateW(aBc.value, uBc.value, wBc.value, rhoBc.value))
+                        .collect
+        this.wArrays = tmp.sortWith(_._1 < _._1)
+                        .map((pair: (Int, Array[Double])) => pair._2)
         
         // update u (locally)
         val normalizer: Double = this.rho / (this.gamma + this.rho)
-        val wAvg: Array[Double] = this.wArrays.reduce(this.arrayAdd).map(_ * mInv)
+        this.w = this.wArrays.reduce(this.arrayAdd).map(_ * mInv)
         val aAvg: Array[Double] = this.aArrays.reduce(this.arrayAdd).map(_ * mInv)
-        for (j <- 0 until this.d) this.u(j) = (wAvg(j) + aAvg(j)) * normalizer
+        for (j <- 0 until this.d) this.u(j) = (this.w(j) + aAvg(j)) * normalizer
         
         // update a (locally)
         for (i <- 0 until this.m.toInt) {
@@ -171,35 +179,39 @@ class Executor(arr: Array[(Double, Array[Double])], idx: Long) extends
      * @param uArray slack variable
      * @param wArrays the primal variables
      * @param rho augmented Lagrangian parameter
-     * @return the (index, primal variable, objective value, training error) tuple
+     * @return the (index, primal variable) pair
      */    
-    def updateW(aArrays: Array[Array[Double]], uArray: Array[Double], wArrays: Array[Array[Double]], rho: Double): (Int, Array[Double], Double, Double) = {
+    def updateW(aArrays: Array[Array[Double]], uArray: Array[Double], wArrays: Array[Array[Double]], rho: Double): (Int, Array[Double]) = {
         val a: DenseVector[Double] = new DenseVector(aArrays(this.index))
         val wold: DenseVector[Double] = new DenseVector(wArrays(this.index))
         val u: DenseVector[Double] = new DenseVector(uArray)
         val srho = this.sDouble * rho
         val diff: DenseVector[Double] = srho * (u - a)
         
-        // compute objective value and training error
-        var res: DenseVector[Double] = this.x.t * u - this.y
-        val trainError: Double = res.toArray.map(a => a*a).sum
-        val uNorm: Double = uArray.map(a => a*a).sum
-        val objVal: Double = (trainError + this.sDouble * this.gamma * uNorm) / 2
-        
         // update w
         var wnew: Array[Double] = Array.empty[Double]
         if (this.isFormHessian) {
-            wnew = cg.solver2(this.xx, this.xy + diff, srho, this.q) 
+            wnew = cg.solver2(this.xx, this.xy + diff, srho, this.q, wold) 
         }
         else {
-            wnew= cg.solver1(this.x, this.xy + diff, srho, this.q)
+            wnew= cg.solver1(this.x, this.xy + diff, srho, this.q, wold)
         }
         
         
-        (this.index, wnew, objVal, trainError)
+        (this.index, wnew)
     }
-            
-            
+    
+    /**
+     * Compute local objective value and training error.
+     */
+    def objs(wArray: Array[Double]): (Double, Double) = {
+        val w: DenseVector[Double] = new DenseVector(wArray)
+        var res: DenseVector[Double] = this.x.t * w - this.y
+        val trainError: Double = res.toArray.map(a => a*a).sum
+        val wNorm: Double = wArray.map(a => a*a).sum
+        val objVal: Double = (trainError + this.sDouble * this.gamma * wNorm) / 2
+        (objVal, trainError)
+    }   
 }
 
 
