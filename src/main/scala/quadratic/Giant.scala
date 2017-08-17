@@ -41,8 +41,6 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         val cost2: Double = s * this.d + 0.05 * maxIter * q * this.d // CG with the Hessian formed
         var isFormHessian: Boolean = if(cost1 < cost2) false else true
         
-        val t0: Double = System.nanoTime()
-        
         // setup the executors for training
         val rddTrain: RDD[Executor] = this.rdd
                                     .map(exe => {exe.setGamma(gamma);  
@@ -50,7 +48,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
                                                  exe.setFormHessian(isFormHessian);
                                                  exe})
                                     .persist()
-        println("count = " + rddTrain.count.toString)
+        rddTrain.count
+        val t0: Double = System.nanoTime()
         println("Driver: executors are setup for training! gamma = " + gamma.toString + ", q = " + q.toString + ", isFormHessian = " + isFormHessian.toString)
         
         // initialize w by model averaging

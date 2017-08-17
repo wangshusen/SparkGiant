@@ -34,15 +34,13 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
      * @return timeArray the elapsed times counted at each iteration
      */
     def train(gamma: Double, maxIter: Int): (Array[Double], Array[Double], Array[Double]) = {
-        println("There are " + this.rdd.count.toString + " executors.")
-        val t0: Double = System.nanoTime()
-        
         // setup the executors for training
         val rddTrain: RDD[Executor] = this.rdd
                                     .map(exe => {exe.setGamma(gamma);
                                                  exe})
                                     .persist()
-        println("count = " + rddTrain.count.toString)
+        rddTrain.count
+        val t0: Double = System.nanoTime()
         
         // initialize w by model averaging
         if (this.isModelAvg) {

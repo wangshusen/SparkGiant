@@ -47,10 +47,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
      */
     def train(gamma: Double, maxIter: Int, q: Int): (Array[Double], Array[Double], Array[Double]) = {
         this.gamma = gamma
-        val rho: Double = 0.1 * gamma
-        this.rho = rho
-        
-        val t0: Double = System.nanoTime()
+        this.rho = 0.1 * gamma
         
         // decide whether to form the Hessian matrix
         val s: Double = this.n.toDouble / this.m.toDouble
@@ -65,8 +62,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
                                                  exe.setFormHessian(isFormHessian);
                                                  exe})
                                     .persist()
-        println("count = " + rddTrain.count.toString)
-        println("Driver: executors are setup for training! gamma = " + gamma.toString + ", q = " + q.toString + ", isFormHessian = " + isFormHessian.toString)
+        rddTrain.count
+        val t0: Double = System.nanoTime()
         
         // initialize a, w, u 
         aArrays.map(ai => ai.map(aij => 0.0))

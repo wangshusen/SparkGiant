@@ -52,10 +52,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
      */
     def train(gamma: Double, maxIter: Int, q: Int, learningRate: Double): (Array[Double], Array[Double], Array[Double]) = {
         this.gamma = gamma
-        val rho: Double = gamma
+        val rho: Double = 0.1 * gamma
         this.rho = rho
-        
-        val t0: Double = System.nanoTime()
         
         // setup the executors for training
         val rddTrain: RDD[Executor] = this.rdd
@@ -65,8 +63,9 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
                                                  exe})
                                     .persist()
         //println("Driver: executors are setup for training! gamma = " + gamma.toString + ", q = " + q.toString + ", learningRate = " + learningRate.toString)
-        
-        
+        rddTrain.count
+        val t0: Double = System.nanoTime()
+
         // initialize a, w, u 
         aArrays.map(ai => ai.map(aij => 0.0))
         wArrays.map(wi => wi.map(wij => 0.0))

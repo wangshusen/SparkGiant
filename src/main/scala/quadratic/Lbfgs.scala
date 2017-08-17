@@ -21,7 +21,7 @@ import scala.collection.mutable.Queue
  */
 class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: Boolean = false)
         extends distopt.quadratic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
-    val isMute: Boolean = false
+    val isMute: Boolean = true
             
     // initialize executors
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
@@ -46,8 +46,6 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
      * @return timeArray the elapsed times counted at each iteration
      */
     def train(gamma: Double, maxIter: Int, numHistory0: Int = 10): (Array[Double], Array[Double], Array[Double]) = {
-        val t0: Double = System.nanoTime()
-        
         this.numHistory = numHistory0
         
         // setup the executors for training
@@ -55,7 +53,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
                                     .map(exe => {exe.setGamma(gamma);
                                                  exe})
                                     .persist()
-        println("count = " + rddTrain.count.toString)
+        rddTrain.count
+        val t0: Double = System.nanoTime()
         
         // initialize w by model averaging
         if (this.isModelAvg) {

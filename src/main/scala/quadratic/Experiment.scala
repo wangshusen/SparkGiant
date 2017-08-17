@@ -128,9 +128,10 @@ object Experiment {
         // normlaize the data
         val (meanLabel, maxFeatures): (Double, Array[Double]) = Utils.meanAndMax(dataTrain)
         val sc: SparkContext = spark.sparkContext
-        dataTrain = Utils.normalize(sc, dataTrain, meanLabel, maxFeatures)
-        dataTest = Utils.normalize(sc, dataTest, meanLabel, maxFeatures)
-        
+        dataTrain = Utils.normalize(sc, dataTrain, meanLabel, maxFeatures).persist()
+        dataTest = Utils.normalize(sc, dataTest, meanLabel, maxFeatures).persist()
+        dataTrain.count
+        dataTest.count
         
         // estimate the kernel parameter (if it is unknown)
         //val sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean

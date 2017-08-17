@@ -40,9 +40,13 @@ object ExperimentRfm {
         
         // load data
         var (dataTrain, dataTest) = this.loaddata(spark, filename1, filename2, numSplits, numFeatures)
+        dataTrain = dataTrain.persist()
+        dataTrain.count
+        dataTest = dataTest.persist()
+        dataTest.count
         
         
-        var gamma: Double = 1E-8
+        var gamma: Double = 1E-10
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestCg(gamma, sc, dataTrain, dataTest)
@@ -210,8 +214,8 @@ object ExperimentRfm {
         // normlaize the data
         val (meanLabel, maxFeatures): (Double, Array[Double]) = Utils.meanAndMax(dataTrain)
         val sc: SparkContext = spark.sparkContext
-        dataTrain = Utils.normalize(sc, dataTrain, meanLabel, maxFeatures)
-        dataTest = Utils.normalize(sc, dataTest, meanLabel, maxFeatures)
+        dataTrain = Utils.normalize(sc, dataTrain, meanLabel, maxFeatures).persist()
+        dataTest = Utils.normalize(sc, dataTest, meanLabel, maxFeatures).persist()
         val t2 = System.nanoTime()
         println("Time cost of loading data:  " + ((t2-t1)*1e-9).toString + "  seconds.")
         
