@@ -139,7 +139,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
             
             var pg: Double = 0.0
             for (j <- 0 until this.d) pg += this.p(j) * this.g(j)
-            eta = this.lineSearch(objVals, -0.1 * pg)
+            eta = this.lineSearch(objVals, -0.01 * pg)
             //println("Eta = " + eta.toString)
         } 
         

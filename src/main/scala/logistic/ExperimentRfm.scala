@@ -80,9 +80,9 @@ object ExperimentRfm {
         var gamma: Double = 1E-4
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
-        this.trainTestAgd(gamma, sc, dataTrain, dataTest)
-        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+        //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        //this.trainTestAgd(gamma, sc, dataTrain, dataTest)
+        //this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
 
         
         spark.stop()
