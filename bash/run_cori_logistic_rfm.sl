@@ -10,7 +10,8 @@
 
 PROJ_HOME="$SCRATCH/SparkGiant"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
-DATA_FILE="$PROJ_HOME/data/covtype_perm"
+DATA_FILE1="$PROJ_HOME/data/covtype_train"
+DATA_FILE2="$PROJ_HOME/data/covtype_test"
 
 NUM_SPLITS="59"
 NUM_FEATURES="10000"
@@ -26,6 +27,6 @@ spark-submit \
     --executor-cores 5 \
     --driver-memory 20G \
     --executor-memory 20G \
-    $JAR_FILE $DATA_FILE $NUM_FEATURES $NUM_SPLITS
+    $JAR_FILE $DATA_FILE1 $DATA_FILE2 $NUM_FEATURES $NUM_SPLITS
   
 stop-all.sh
