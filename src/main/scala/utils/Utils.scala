@@ -34,11 +34,19 @@ object Utils {
             // However, coalesce() may not return the desired number of partitions;
             // if the data is small, the resulting #partition can be smaller than numSplits.
             if (isCoalesce) {
+                var t1 = System.nanoTime()
                 rawdata = rawdata.coalesce(numSplits)
+                var t2 = System.nanoTime()
+                var tdiff = (t2 - t1) * 1E-9
+                println("Time cost of coalesce is " + tdiff.toString)
             }
             // repartition() is slower, but it is guaranteed to return exactly numSplits partitions.
             else {
+                var t1 = System.nanoTime()
                 rawdata = rawdata.repartition(numSplits)
+                var t2 = System.nanoTime()
+                var tdiff = (t2 - t1) * 1E-9
+                println("Time cost of repartition is " + tdiff.toString)
             }
             // note: coalesce can result in data being sent over the network. avoid this for large datasets
             
