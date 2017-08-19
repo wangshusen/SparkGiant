@@ -14,7 +14,7 @@ NUM_SPLITS="2"
 NUM_FEATURE="200"
 
 /root/spark/bin/spark-submit \
-    --class "distopt.logistic.ExperimentRfm" \
+    --class "distopt.logistic.ExperimentCovtype" \
     --master `cat /root/spark-ec2/cluster-url` \
     --num-executors $NUM_SPLITS \
     --driver-memory 12G \

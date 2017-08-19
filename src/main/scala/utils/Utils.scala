@@ -77,4 +77,14 @@ object Utils {
         normalizedLabelVectorRdd
     }
     
+    
+    def parseLibsvm(str: String, d: Int): (Double, Vector) = {
+        val strArray: Array[String] = str.split(" ")
+        val label: Double = strArray(0).toDouble
+        val elements: Array[(Int, Double)] = strArray.drop(1)
+                                                .map(s => s.split(":"))
+                                                .map(pair => (pair(0).toDouble.toInt, pair(1).toDouble))
+        val feature: Vector = Vectors.sparse(d, elements)
+        (label, feature)
+    }
 }

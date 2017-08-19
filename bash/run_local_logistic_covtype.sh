@@ -11,7 +11,7 @@ DATA_FILE1="$PROJ_HOME/data/covtype_train"
 DATA_FILE2="$PROJ_HOME/data/covtype_test"
 
 $SPARK_HOME/bin/spark-submit \
-    --class "distopt.logistic.ExperimentRfm" \
+    --class "distopt.logistic.ExperimentCovtype" \
     --master $MASTER \
     --driver-memory 8G \
     --executor-cores 1 \

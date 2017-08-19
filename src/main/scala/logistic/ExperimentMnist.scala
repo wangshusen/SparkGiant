@@ -7,17 +7,22 @@ import org.apache.spark.SparkConf
 import org.apache.spark.rdd._
 // spark-sql
 import org.apache.spark.sql.SparkSession
+// spark-mllib
+import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.mllib.util.MLUtils
+import org.apache.spark.mllib.linalg.{Vector, Vectors}
 
 import distopt.utils._
 import distopt.logistic._
 
-object ExperimentRfm {
+object ExperimentMnist {
     def main(args: Array[String]) {
         // parse parameters from command line arguments
         val filename1: String = args(0).toString
         val filename2: String = args(1).toString
         val numFeatures: Int = args(2).toInt
         val numSplits: Int = args(3).toInt
+        val d: Int = 784
         
         println("Training name: " + filename1)
         println("Testing name: " + filename2)
@@ -36,22 +41,30 @@ object ExperimentRfm {
         var t1 = System.nanoTime()
         println("Time cost of starting Spark:  " + ((t1-t0)*1e-9).toString + "  seconds.")
         
+        
+        // partition data to train and test
+        //val inputFileName: String = "./data/mnist"
+        //partitionTrainTest(sc, inputFileName, numSplits)
+        
+        
+        
         // load data
-        var (dataTrain, dataTest) = this.loaddata(spark, filename1, filename2, numSplits, numFeatures)
+        var (dataTrain, dataTest) = this.loaddata(spark, filename1, filename2, d, numSplits, numFeatures)
         dataTrain = dataTrain.persist()
         dataTrain.count
         dataTest = dataTest.persist()
         dataTest.count
         
         
-        
-        var gamma: Double = 1E-8
+        var gamma: Double = 1E-4
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
-        this.trainTestAgd(gamma, sc, dataTrain, dataTest)
-        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
-
+        //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        //this.trainTestAgd(gamma, sc, dataTrain, dataTest)
+        //this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+        
+        /*
+        */
         
         spark.stop()
     }
@@ -118,10 +131,10 @@ object ExperimentRfm {
         val dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
         
         
-        var learningrate = 10.0
+        var learningrate = 1.0
         
-        var maxIterOuter = 40
-        var maxIterInner = 30
+        var maxIterOuter = 20
+        var maxIterInner = 100
         
         var results: (Array[Double], Array[Double], Array[Double]) = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
@@ -134,6 +147,8 @@ object ExperimentRfm {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        
+        learningrate = 10.0
         
         maxIterOuter = 20
         maxIterInner = 100
@@ -151,23 +166,10 @@ object ExperimentRfm {
         println("\n ")
         
         
-        maxIterOuter = 10
-        maxIterInner = 300
+        learningrate = 100.0
         
-        results = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
-        println("\n ")
-        println("====================================================================")
-        println("DANE (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = dane.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        maxIterOuter = 5
-        maxIterInner = 900
+        maxIterOuter = 20
+        maxIterInner = 100
         
         results = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
@@ -348,6 +350,22 @@ object ExperimentRfm {
         println(element2.toString + "\t" + element1.toString + "\t" + element3.toString)
     }
     
+    def partitionTrainTest(sc: SparkContext, filename: String, numSplits: Int): Unit = {
+        // keep the samples with lable 4 or 9
+        def filterFunction(a: Int): Boolean = { a == 4 || a == 9}
+        var rawdata: RDD[String] = sc.textFile(filename)
+                                .map(str => (str.slice(0, 2).toDouble.toInt, str.drop(2)))
+                                .filter(pair => filterFunction(pair._1))
+                                .map(pair => pair._1.toString + " " + pair._2)
+                                .repartition(numSplits)
+        // partition data to training and testing sets
+        var indexedData: RDD[(String, Long)] = rawdata.zipWithIndex.persist()
+        var trainData: RDD[String] = indexedData.filter(pair => (pair._2 % 5 > 0.1)).map(pair => pair._1)
+        var testData: RDD[String] = indexedData.filter(pair => (pair._2 % 5 < 0.1)).map(pair => pair._1)
+        trainData.saveAsTextFile(filename + "_train")
+        testData.saveAsTextFile(filename + "_test")
+    }
+    
     
     /**
      * Load training and testing data from lib-svm files.
@@ -358,30 +376,36 @@ object ExperimentRfm {
      * @param numSplits number of splits
      * @return rdds of training and testing data
     */
-    def loaddata(spark: SparkSession, filename1: String, filename2: String, numSplits: Int, numFeatures: Int): (RDD[(Double, Array[Double])], RDD[(Double, Array[Double])]) = {
+    def loaddata(spark: SparkSession, filename1: String, filename2: String, d: Int, numSplits: Int, numFeatures: Int): (RDD[(Double, Array[Double])], RDD[(Double, Array[Double])]) = {
         val t1 = System.nanoTime()
         
-        // load training and test data
-        val isCoalesce: Boolean = false
-        var dataTrain: RDD[(Double, Array[Double])] = Utils.loadLibsvmData(spark, filename1, numSplits, isCoalesce)
-                                                        .map(pair => (pair._1.toDouble * 2 - 3, pair._2))
+        // load training and testing data
+        val sc: SparkContext = spark.sparkContext
+        var dataTrain: RDD[(Double, Array[Double])] = sc.textFile(filename1)
+                                                        .repartition(numSplits)
+                                                        .map(Utils.parseLibsvm(_, d))
+                                                        .map(pair => ((pair._1.toDouble - 6.5) / 2.5, pair._2.toArray))
                                                         .persist()
-        var dataTest: RDD[(Double, Array[Double])] = Utils.loadLibsvmData(spark, filename2)
-                                                        .map(pair => (pair._1.toDouble * 2 - 3, pair._2))
+        var dataTest: RDD[(Double, Array[Double])] = sc.textFile(filename2)
+                                                        .map(Utils.parseLibsvm(_, d))
+                                                        .map(pair => ((pair._1.toDouble - 6.5) / 2.5, pair._2.toArray))
                                                         .persist()
         println("There are " + dataTrain.count.toString + " training samples.")
         println("There are " + dataTest.count.toString + " test samples.")
         val t2 = System.nanoTime()
         println("Time cost of loading data:  " + ((t2-t1)*1e-9).toString + "  seconds.")
+        dataTrain.take(10).foreach(x => println(x._1.toString + " " + x._2.mkString(",")))
         
+        
+        /*
         // estimate the kernel parameter (if it is unknown)
-        //val sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
-        //println("Estimated sigma is " + sigma.toString)
+        val sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
+        println("Estimated sigma is " + sigma.toString)
         
         // map input data to random Fourier features
-        val sigmaCovtype: Double = 3.2
-        dataTrain = dataTrain.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaCovtype)).persist
-        dataTest = dataTest.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaCovtype)).persist
+        val sigmaMnist: Double = 43.24
+        dataTrain = dataTrain.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaMnist)).persist
+        dataTest = dataTest.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaMnist)).persist
         println("There are " + dataTrain.count.toString + " training samples.")
         println("There are " + dataTest.count.toString + " test samples.")
         var t3 = System.nanoTime()
@@ -392,10 +416,10 @@ object ExperimentRfm {
         spark.conf.getAll.foreach(println)
         println(" ")
         println("getExecutorMemoryStatus:")
-        val sc: SparkContext = spark.sparkContext
         println(sc.getExecutorMemoryStatus.toString())
         println("####################################")
         println(" ")
+        */
         
         (dataTrain, dataTest)
     }

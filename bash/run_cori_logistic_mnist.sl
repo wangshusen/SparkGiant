@@ -2,7 +2,7 @@
 #SBATCH -p regular
 #SBATCH -N 10
 #SBATCH -C haswell
-#SBATCH -t 08:00:00
+#SBATCH -t 01:00:00
 #SBATCH -J giant_logistic
 #SBATCH -L SCRATCH
 #SBATCH -e giant_job_%j.err
@@ -10,8 +10,8 @@
 
 PROJ_HOME="$SCRATCH/SparkGiant"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
-DATA_FILE1="$PROJ_HOME/data/covtype_train"
-DATA_FILE2="$PROJ_HOME/data/covtype_test"
+DATA_FILE1="$PROJ_HOME/data/mnist8m_train"
+DATA_FILE2="$PROJ_HOME/data/mnist8m_test"
 
 NUM_SPLITS="59"
 NUM_FEATURES="10000"
@@ -21,7 +21,7 @@ ulimit -s unlimited
 start-all.sh
 
 spark-submit \
-    --class "distopt.logistic.ExperimentRfm" \
+    --class "distopt.logistic.ExperimentMnist" \
     --num-executors $NUM_SPLITS \
     --driver-cores 5 \
     --executor-cores 5 \

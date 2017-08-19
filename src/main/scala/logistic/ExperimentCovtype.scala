@@ -11,15 +11,17 @@ import org.apache.spark.sql.SparkSession
 import distopt.utils._
 import distopt.logistic._
 
-object Experiment {
+object ExperimentCovtype {
     def main(args: Array[String]) {
         // parse parameters from command line arguments
         val filename1: String = args(0).toString
         val filename2: String = args(1).toString
-        val numSplits: Int = args(2).toInt
+        val numFeatures: Int = args(2).toInt
+        val numSplits: Int = args(3).toInt
         
-        println("Training file name: " + filename1)
-        println("Test file name: " + filename2)
+        println("Training name: " + filename1)
+        println("Testing name: " + filename2)
+        println("Number of random features: " + numFeatures.toString)
         println("Number of splits: " + numSplits.toString)
         
         // launch Spark
@@ -34,8 +36,12 @@ object Experiment {
         var t1 = System.nanoTime()
         println("Time cost of starting Spark:  " + ((t1-t0)*1e-9).toString + "  seconds.")
         
-        // load training and test data
-        var (dataTrain, dataTest) = this.loaddata(spark, filename1, filename2, numSplits)
+        // load data
+        var (dataTrain, dataTest) = this.loaddata(spark, filename1, filename2, numSplits, numFeatures)
+        dataTrain = dataTrain.persist()
+        dataTrain.count
+        dataTest = dataTest.persist()
+        dataTest.count
         
         
         
@@ -45,6 +51,7 @@ object Experiment {
         this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+
         
         spark.stop()
     }
@@ -71,6 +78,7 @@ object Experiment {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        
         maxIterOuter = 30
         maxIterInner = 300
         
@@ -85,6 +93,23 @@ object Experiment {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        
+        
+        maxIterOuter = 15
+        maxIterInner = 900
+        
+        results = giant.train(gamma, maxIterOuter, maxIterInner)
+        println("\n ")
+        println("====================================================================")
+        println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = giant.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
     }
     
     
@@ -95,8 +120,8 @@ object Experiment {
         
         var learningrate = 10.0
         
-        var maxIterOuter = 20
-        var maxIterInner = 100
+        var maxIterOuter = 40
+        var maxIterInner = 30
         
         var results: (Array[Double], Array[Double], Array[Double]) = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
@@ -106,6 +131,21 @@ object Experiment {
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         var testError: Double = dane.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        maxIterOuter = 20
+        maxIterInner = 100
+        
+        results = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
+        println("\n ")
+        println("====================================================================")
+        println("DANE (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = dane.predict(dataTest)
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
@@ -125,7 +165,6 @@ object Experiment {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
         
         maxIterOuter = 5
         maxIterInner = 900
@@ -141,8 +180,6 @@ object Experiment {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
-        
     }
     
 
@@ -151,10 +188,10 @@ object Experiment {
         val admm: Admm.Driver = new Admm.Driver(sc, dataTrain)
         
         
-        var learningrate = 1.0
+        var learningrate = 10.0
         
-        var maxIterOuter = 20
-        var maxIterInner = 100                                                                                                                  
+        var maxIterOuter = 40
+        var maxIterInner = 30                                                                                                                  
         var results: (Array[Double], Array[Double], Array[Double]) = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
         println("====================================================================")
@@ -166,6 +203,21 @@ object Experiment {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        
+        maxIterOuter = 20
+        maxIterInner = 100                                                                                                                  
+        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
+        println("\n ")
+        println("====================================================================")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = admm.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
         
         maxIterOuter = 10
         maxIterInner = 300                                                                                                                  
@@ -181,9 +233,9 @@ object Experiment {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        
+        /*
         maxIterOuter = 5
-        maxIterInner = 300                                                                                                                  
+        maxIterInner = 900                                                                                                                  
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
         println("====================================================================")
@@ -195,6 +247,7 @@ object Experiment {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        */
     }
     
     
@@ -205,7 +258,7 @@ object Experiment {
         var maxIterOuter = 3000
         
         var learningrate = 10.0
-        var momentum = 0.9
+        var momentum = 0.95
         
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
@@ -219,8 +272,9 @@ object Experiment {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        
         learningrate = 10.0
-        momentum = 0.95
+        momentum = 0.99
         
         results = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
@@ -233,6 +287,22 @@ object Experiment {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        /*
+        learningrate = 100.0
+        momentum = 0.99
+        
+        results = agd.train(gamma, maxIterOuter, learningrate, momentum)
+        println("\n ")
+        println("====================================================================")
+        println("Accelerated Gradient Descent (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString+ ", LearningRate=" + learningrate.toString + ", momentum=" + momentum.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = agd.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        */
     }
     
     
@@ -242,7 +312,7 @@ object Experiment {
         
         var maxIterOuter: Int = 500
         
-        var numHistory: Int = 30
+        var numHistory: Int = 100
         
         var results: (Array[Double], Array[Double], Array[Double]) = lbfgs.train(gamma, maxIterOuter, numHistory)
         println("\n ")
@@ -252,21 +322,6 @@ object Experiment {
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         var testError: Double = lbfgs.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        
-        numHistory = 100
-        
-        results = lbfgs.train(gamma, maxIterOuter, numHistory)
-        println("\n ")
-        println("====================================================================")
-        println("L-BFGS (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", numHistory=" + numHistory.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = lbfgs.predict(dataTest)
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
@@ -285,6 +340,7 @@ object Experiment {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        
     }
     
     
@@ -302,16 +358,16 @@ object Experiment {
      * @param numSplits number of splits
      * @return rdds of training and testing data
     */
-    def loaddata(spark: SparkSession, filename1: String, filename2: String, numSplits: Int): (RDD[(Double, Array[Double])], RDD[(Double, Array[Double])]) = {
+    def loaddata(spark: SparkSession, filename1: String, filename2: String, numSplits: Int, numFeatures: Int): (RDD[(Double, Array[Double])], RDD[(Double, Array[Double])]) = {
         val t1 = System.nanoTime()
         
         // load training and test data
         val isCoalesce: Boolean = false
         var dataTrain: RDD[(Double, Array[Double])] = Utils.loadLibsvmData(spark, filename1, numSplits, isCoalesce)
-                                                        .map(pair => (pair._1.toDouble, pair._2))
+                                                        .map(pair => (pair._1.toDouble * 2 - 3, pair._2))
                                                         .persist()
         var dataTest: RDD[(Double, Array[Double])] = Utils.loadLibsvmData(spark, filename2)
-                                                        .map(pair => (pair._1.toDouble, pair._2))
+                                                        .map(pair => (pair._1.toDouble * 2 - 3, pair._2))
                                                         .persist()
         println("There are " + dataTrain.count.toString + " training samples.")
         println("There are " + dataTest.count.toString + " test samples.")
@@ -322,6 +378,14 @@ object Experiment {
         //val sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
         //println("Estimated sigma is " + sigma.toString)
         
+        // map input data to random Fourier features
+        val sigmaCovtype: Double = 3.2
+        dataTrain = dataTrain.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaCovtype)).persist
+        dataTest = dataTest.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaCovtype)).persist
+        println("There are " + dataTrain.count.toString + " training samples.")
+        println("There are " + dataTest.count.toString + " test samples.")
+        var t3 = System.nanoTime()
+        println("Time cost of random feature mapping:  " + ((t3-t2)*1e-9).toString + "  seconds.")
         
         println("####################################")
         println("spark.conf.getAll:")
@@ -335,7 +399,4 @@ object Experiment {
         
         (dataTrain, dataTest)
     }
-    
-    
-    
 }
