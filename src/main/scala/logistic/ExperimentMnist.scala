@@ -43,10 +43,11 @@ object ExperimentMnist {
         
         
         // partition data to train and test
-        //val inputFileName: String = "./data/mnist"
-        //partitionTrainTest(sc, inputFileName, numSplits)
+        val inputFileName: String = "./data/mnist"
+        partitionTrainTest(sc, inputFileName, numSplits)
         
         
+        /*
         
         // load data
         var (dataTrain, dataTest) = this.loaddata(spark, filename1, filename2, d, numSplits, numFeatures)
@@ -63,7 +64,6 @@ object ExperimentMnist {
         //this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         //this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
-        /*
         */
         
         spark.stop()

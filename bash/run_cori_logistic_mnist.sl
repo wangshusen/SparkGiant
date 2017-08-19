@@ -10,8 +10,8 @@
 
 PROJ_HOME="$SCRATCH/SparkGiant"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
-DATA_FILE1="$PROJ_HOME/data/mnist8m_train"
-DATA_FILE2="$PROJ_HOME/data/mnist8m_test"
+DATA_FILE1="$PROJ_HOME/data/mnist_train"
+DATA_FILE2="$PROJ_HOME/data/mnist_test"
 
 NUM_SPLITS="59"
 NUM_FEATURES="10000"
