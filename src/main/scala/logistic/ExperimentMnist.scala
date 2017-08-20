@@ -59,9 +59,9 @@ object ExperimentMnist {
         var gamma: Double = 1E-4
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
-        //this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
         /**/
         
@@ -75,8 +75,8 @@ object ExperimentMnist {
         val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
         
         
-        var maxIterOuter: Int = 60
-        var maxIterInner: Int = 100
+        var maxIterOuter: Int = 100
+        var maxIterInner: Int = 30
         
         var results: (Array[Double], Array[Double], Array[Double]) = giant.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")
@@ -91,6 +91,22 @@ object ExperimentMnist {
         println("\n ")
         
         
+        maxIterOuter = 60
+        maxIterInner = 100
+        
+        results = giant.train(gamma, maxIterOuter, maxIterInner)
+        println("\n ")
+        println("====================================================================")
+        println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = giant.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        /*
         maxIterOuter = 30
         maxIterInner = 300
         
@@ -105,23 +121,7 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
-        
-        maxIterOuter = 15
-        maxIterInner = 900
-        
-        results = giant.train(gamma, maxIterOuter, maxIterInner)
-        println("\n ")
-        println("====================================================================")
-        println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = giant.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
+        */
     }
     
     
@@ -129,11 +129,10 @@ object ExperimentMnist {
         val isSearch = true
         val dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
         
-        
         var learningrate = 1.0
         
-        var maxIterOuter = 20
-        var maxIterInner = 100
+        var maxIterOuter = 40
+        var maxIterInner = 30
         
         var results: (Array[Double], Array[Double], Array[Double]) = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
@@ -147,8 +146,6 @@ object ExperimentMnist {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        learningrate = 10.0
-        
         maxIterOuter = 20
         maxIterInner = 100
         
@@ -165,7 +162,22 @@ object ExperimentMnist {
         println("\n ")
         
         
-        learningrate = 100.0
+        learningrate = 0.1
+        
+        maxIterOuter = 40
+        maxIterInner = 30
+        
+        results = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
+        println("\n ")
+        println("====================================================================")
+        println("DANE (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = dane.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
         
         maxIterOuter = 20
         maxIterInner = 100
@@ -181,6 +193,7 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+
     }
     
 
@@ -189,7 +202,7 @@ object ExperimentMnist {
         val admm: Admm.Driver = new Admm.Driver(sc, dataTrain)
         
         
-        var learningrate = 10.0
+        var learningrate = 1.0
         
         var maxIterOuter = 40
         var maxIterInner = 30                                                                                                                  
@@ -219,9 +232,10 @@ object ExperimentMnist {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        learningrate = 0.1
         
-        maxIterOuter = 10
-        maxIterInner = 300                                                                                                                  
+        maxIterOuter = 40
+        maxIterInner = 30                                                                                                                  
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
         println("====================================================================")
@@ -234,9 +248,9 @@ object ExperimentMnist {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        /*
-        maxIterOuter = 5
-        maxIterInner = 900                                                                                                                  
+        
+        maxIterOuter = 20
+        maxIterInner = 100                                                                                                                  
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
         println("====================================================================")
@@ -248,7 +262,6 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        */
     }
     
     
@@ -256,10 +269,11 @@ object ExperimentMnist {
     def trainTestAgd(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val agd: Agd.Driver = new Agd.Driver(sc, dataTrain)
         
-        var maxIterOuter = 500
+        var maxIterOuter = 3000
         
-        var learningrate = 1.0
-        var momentum = 0.95
+        var learningrate = 0.1
+        
+        var momentum = 0.9
         
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
@@ -273,8 +287,6 @@ object ExperimentMnist {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        
-        learningrate = 10.0
         momentum = 0.95
         
         results = agd.train(gamma, maxIterOuter, learningrate, momentum)
@@ -289,24 +301,9 @@ object ExperimentMnist {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        learningrate = 1.0
         
-        learningrate = 10.0
-        momentum = 0.99
-        
-        results = agd.train(gamma, maxIterOuter, learningrate, momentum)
-        println("\n ")
-        println("====================================================================")
-        println("Accelerated Gradient Descent (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString+ ", LearningRate=" + learningrate.toString + ", momentum=" + momentum.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = agd.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        /*
-        learningrate = 100.0
-        momentum = 0.99
+        momentum = 0.9
         
         results = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
@@ -319,7 +316,20 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        */
+        
+        momentum = 0.95
+        
+        results = agd.train(gamma, maxIterOuter, learningrate, momentum)
+        println("\n ")
+        println("====================================================================")
+        println("Accelerated Gradient Descent (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString+ ", LearningRate=" + learningrate.toString + ", momentum=" + momentum.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = agd.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
     }
     
     
@@ -329,7 +339,7 @@ object ExperimentMnist {
         
         var maxIterOuter: Int = 500
         
-        var numHistory: Int = 100
+        var numHistory: Int = 30
         
         var results: (Array[Double], Array[Double], Array[Double]) = lbfgs.train(gamma, maxIterOuter, numHistory)
         println("\n ")
@@ -339,6 +349,20 @@ object ExperimentMnist {
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         var testError: Double = lbfgs.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        numHistory = 100
+        
+        results = lbfgs.train(gamma, maxIterOuter, numHistory)
+        println("\n ")
+        println("====================================================================")
+        println("L-BFGS (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", numHistory=" + numHistory.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = lbfgs.predict(dataTest)
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
@@ -409,7 +433,7 @@ object ExperimentMnist {
         println("There are " + dataTest.count.toString + " test samples.")
         val t2 = System.nanoTime()
         println("Time cost of loading data:  " + ((t2-t1)*1e-9).toString + "  seconds.")
-        dataTrain.take(10).foreach(x => println(x._1.toString + " " + x._2.mkString(",")))
+        //dataTrain.take(10).foreach(x => println(x._1.toString + " " + x._2.mkString(",")))
         
         
         /*
