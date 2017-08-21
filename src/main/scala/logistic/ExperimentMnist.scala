@@ -57,10 +57,10 @@ object ExperimentMnist {
         
         // test logistic regression solvers
         var gamma: Double = 1E-6
-        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
         //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
-        //this.trainTestAgd(gamma, sc, dataTrain, dataTest)
+        this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         //this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
         /**/
@@ -129,7 +129,7 @@ object ExperimentMnist {
         val isSearch = true
         val dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
         
-        var learningrate = 0.1
+        var learningrate = 10
         
         var maxIterOuter = 40
         var maxIterInner = 30
@@ -142,38 +142,6 @@ object ExperimentMnist {
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         var testError: Double = dane.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        learningrate = 1.0
-        maxIterOuter = 40
-        maxIterInner = 30
-        
-        results = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
-        println("\n ")
-        println("====================================================================")
-        println("DANE (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = dane.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        learningrate = 10.0
-        maxIterOuter = 40
-        maxIterInner = 30
-        
-        results = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
-        println("\n ")
-        println("====================================================================")
-        println("DANE (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = dane.predict(dataTest)
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
@@ -270,7 +238,7 @@ object ExperimentMnist {
     def trainTestAgd(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val agd: Agd.Driver = new Agd.Driver(sc, dataTrain)
         
-        var maxIterOuter = 3000
+        var maxIterOuter = 1000
         var learningrate = 1.0
         
         var momentum = 0.95

@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -p regular
-#SBATCH -N 30
+#SBATCH -N 10
 #SBATCH -C haswell
-#SBATCH -t 01:00:00
+#SBATCH -t 04:00:00
 #SBATCH -J giant_logistic
 #SBATCH -L SCRATCH
 #SBATCH -e giant_job_%j.err
@@ -13,7 +13,7 @@ JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 DATA_FILE1="$PROJ_HOME/data/mnist_train"
 DATA_FILE2="$PROJ_HOME/data/mnist_test"
 
-NUM_SPLITS="179"
+NUM_SPLITS="59"
 NUM_FEATURES="10000"
 
 module load spark
