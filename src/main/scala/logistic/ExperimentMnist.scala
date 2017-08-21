@@ -56,12 +56,12 @@ object ExperimentMnist {
         
         
         // test logistic regression solvers
-        var gamma: Double = 1E-8
+        var gamma: Double = 1E-4
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
-        this.trainTestAgd(gamma, sc, dataTrain, dataTest)
-        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+        //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        //this.trainTestAgd(gamma, sc, dataTrain, dataTest)
+        //this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
         /**/
         
@@ -90,7 +90,7 @@ object ExperimentMnist {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        
+        /*
         maxIterOuter = 60
         maxIterInner = 100
         
@@ -121,7 +121,7 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        */
     }
     
     
@@ -129,7 +129,7 @@ object ExperimentMnist {
         val isSearch = true
         val dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
         
-        var learningrate = 1.0
+        var learningrate = 0.1
         
         var maxIterOuter = 40
         var maxIterInner = 30
@@ -146,6 +146,40 @@ object ExperimentMnist {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        learningrate = 1.0
+        maxIterOuter = 40
+        maxIterInner = 30
+        
+        results = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
+        println("\n ")
+        println("====================================================================")
+        println("DANE (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = dane.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        learningrate = 10.0
+        maxIterOuter = 40
+        maxIterInner = 30
+        
+        results = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
+        println("\n ")
+        println("====================================================================")
+        println("DANE (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = dane.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        
+        /*
         maxIterOuter = 20
         maxIterInner = 100
         
@@ -175,7 +209,7 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-
+        */
     }
     
 
@@ -377,6 +411,7 @@ object ExperimentMnist {
         // estimate the kernel parameter (if it is unknown)
         val sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
         println("Estimated sigma is " + sigma.toString)
+        */
         
         // map input data to random Fourier features
         val sigmaMnist: Double = 43.24
@@ -395,7 +430,7 @@ object ExperimentMnist {
         println(sc.getExecutorMemoryStatus.toString())
         println("####################################")
         println(" ")
-        */
+        
         
         (dataTrain, dataTest)
     }
