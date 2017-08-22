@@ -21,6 +21,8 @@ import breeze.numerics._
  */
 class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: Boolean = false)
         extends distopt.logistic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
+    val isMute: Boolean = false
+            
     // initialize executors
     val rdd: RDD[distopt.logistic.Common.Executor] = data.glom.map(new distopt.logistic.Common.Executor(_)).persist()
     //println("There are " + rdd.count.toString + " partition.")
@@ -76,6 +78,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
             t1 = System.nanoTime()
             trainErrorArray(t) = this.trainError
             objValArray(t) = this.objVal
+            
+            if (!this.isMute) println("Iteration " + t.toString + ":\t objective value is " + this.objVal.toString + ",\t time: " + timeArray(t).toString)
         }
         
         (trainErrorArray, objValArray, timeArray)

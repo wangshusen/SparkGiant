@@ -57,9 +57,9 @@ object ExperimentMnist {
         
         // test logistic regression solvers
         var gamma: Double = 1E-6
-        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        //this.trainTestDane(gamma, sc, dataTrain, dataTest)
+        //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
@@ -239,9 +239,13 @@ object ExperimentMnist {
         val agd: Agd.Driver = new Agd.Driver(sc, dataTrain)
         
         var maxIterOuter = 1000
-        var learningrate = 1.0
         
+        var learningrate = 1.0
         var momentum = 0.95
+        
+        
+        learningrate = 1.0
+        momentum = 0.95
         
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
