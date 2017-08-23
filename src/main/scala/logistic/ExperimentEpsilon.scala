@@ -45,11 +45,11 @@ object ExperimentEpsilon {
         
         /*
         var gamma: Double = 1E-4
-        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
-        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+        //this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         */
         
         spark.stop()
@@ -117,7 +117,7 @@ object ExperimentEpsilon {
         val dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
         
         
-        var learningrate = 10.0
+        var learningrate = 1.0
         
         var maxIterOuter = 40
         var maxIterInner = 30
@@ -134,8 +134,9 @@ object ExperimentEpsilon {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        learningrate = 10.0
         maxIterOuter = 20
-        maxIterInner = 100
+        maxIterInner = 30
         
         results = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
@@ -149,24 +150,9 @@ object ExperimentEpsilon {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        
-        maxIterOuter = 10
-        maxIterInner = 300
-        
-        results = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
-        println("\n ")
-        println("====================================================================")
-        println("DANE (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = dane.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        maxIterOuter = 5
-        maxIterInner = 900
+        learningrate = 100.0
+        maxIterOuter = 20
+        maxIterInner = 30
         
         results = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
@@ -179,6 +165,7 @@ object ExperimentEpsilon {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        
     }
     
 
@@ -254,9 +241,9 @@ object ExperimentEpsilon {
     def trainTestAgd(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val agd: Agd.Driver = new Agd.Driver(sc, dataTrain)
         
-        var maxIterOuter = 3000
+        var maxIterOuter = 500
         
-        var learningrate = 10.0
+        var learningrate = 1.0
         var momentum = 0.95
         
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
@@ -286,7 +273,7 @@ object ExperimentEpsilon {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        /*
+        
         learningrate = 100.0
         momentum = 0.99
         
@@ -301,7 +288,7 @@ object ExperimentEpsilon {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        */
+        
     }
     
     
