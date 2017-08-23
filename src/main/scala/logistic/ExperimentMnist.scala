@@ -260,22 +260,23 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+
         
         learningrate = 1.0
         momentum = 0.99
         
-        var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
+        results = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
         println("====================================================================")
         println("Accelerated Gradient Descent (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString+ ", LearningRate=" + learningrate.toString + ", momentum=" + momentum.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
-        var testError: Double = agd.predict(dataTest)
+        testError = agd.predict(dataTest)
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+
         
         learningrate = 10.0
         momentum = 0.99
