@@ -7,6 +7,8 @@ import org.apache.spark.SparkConf
 import org.apache.spark.rdd._
 // spark-sql
 import org.apache.spark.sql.SparkSession
+// others
+import scala.math
 
 import distopt.utils._
 import distopt.logistic._
@@ -44,14 +46,14 @@ object ExperimentCovtype {
         dataTest.count
         
         
-        
+        /*
         var gamma: Double = 1E-8
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
         this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
-
+        */
         
         spark.stop()
     }
@@ -375,11 +377,13 @@ object ExperimentCovtype {
         println("Time cost of loading data:  " + ((t2-t1)*1e-9).toString + "  seconds.")
         
         // estimate the kernel parameter (if it is unknown)
-        //val sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
-        //println("Estimated sigma is " + sigma.toString)
+        var sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
+        sigma = math.sqrt(sigma)
+        println("Estimated sigma is " + sigma.toString)
         
+        /*
         // map input data to random Fourier features
-        val sigmaCovtype: Double = 3.2
+        val sigmaCovtype: Double = 1.9
         dataTrain = dataTrain.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaCovtype)).persist
         dataTest = dataTest.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaCovtype)).persist
         println("There are " + dataTrain.count.toString + " training samples.")
@@ -396,7 +400,7 @@ object ExperimentCovtype {
         println(sc.getExecutorMemoryStatus.toString())
         println("####################################")
         println(" ")
-        
+        */
         (dataTrain, dataTest)
     }
 }

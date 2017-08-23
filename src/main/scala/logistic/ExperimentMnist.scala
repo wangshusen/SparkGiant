@@ -11,6 +11,8 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.util.MLUtils
 import org.apache.spark.mllib.linalg.{Vector, Vectors}
+// others
+import scala.math
 
 import distopt.utils._
 import distopt.logistic._
@@ -33,7 +35,7 @@ object ExperimentMnist {
         var t0 = System.nanoTime()
         val spark = (SparkSession
                       .builder()
-                      .appName("Distributed Algorithms for Logistic Regression")
+                      .appName("Distributed Algorithms for Logistic Regression -- MNIST8K")
                       .config("spark.some.config.option", "some-value")
                       .getOrCreate())
         val sc = spark.sparkContext
@@ -56,12 +58,12 @@ object ExperimentMnist {
         
         
         // test logistic regression solvers
-        var gamma: Double = 1E-6
+        //var gamma: Double = 1E-6
         //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         //this.trainTestDane(gamma, sc, dataTrain, dataTest)
         //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
-        this.trainTestAgd(gamma, sc, dataTrain, dataTest)
-        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+        //this.trainTestAgd(gamma, sc, dataTrain, dataTest)
+        //this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
         /**/
         
@@ -411,12 +413,13 @@ object ExperimentMnist {
         //dataTrain.take(10).foreach(x => println(x._1.toString + " " + x._2.mkString(",")))
         
         
-        /*
         // estimate the kernel parameter (if it is unknown)
-        val sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
+        var sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
+        sigma = math.sqrt(sigma)
         println("Estimated sigma is " + sigma.toString)
-        */
         
+        
+        /*
         // map input data to random Fourier features
         val sigmaMnist: Double = 43.24
         dataTrain = dataTrain.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaMnist)).persist
@@ -434,7 +437,7 @@ object ExperimentMnist {
         println(sc.getExecutorMemoryStatus.toString())
         println("####################################")
         println(" ")
-        
+        */
         
         (dataTrain, dataTest)
     }

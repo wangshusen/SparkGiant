@@ -60,7 +60,7 @@ object Kernel {
     
 
     def estimateSigma(yxArray: Array[(Double, Array[Double])]): Double = {
-        val n: Int = if(yxArray.length < 200) yxArray.length else 200 
+        val n: Int = if(yxArray.length < 500) yxArray.length else 500 
         val d: Int = yxArray(0)._2.length
         val x: Array[DenseVector[Double]] = new Array[DenseVector[Double]](n)
         var a: Double = 0.0
@@ -72,11 +72,11 @@ object Kernel {
         for (j <- 0 until n) {
             val xj: DenseVector[Double] = x(j)
             for (i <- 0 until n) {
-                b = xj.t * x(i)
-                a += b * b * n2inv
+                b = (xj - x(i)).toArray.map(a => a*a).sum
+                a += b * n2inv
             }
         }
-        math.sqrt(a)
+        a
     }
 
     

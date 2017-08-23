@@ -7,6 +7,8 @@ import org.apache.spark.SparkConf
 import org.apache.spark.rdd._
 // spark-sql
 import org.apache.spark.sql.SparkSession
+// others
+import scala.math
 
 import distopt.utils._
 import distopt.logistic._
@@ -361,7 +363,8 @@ object ExperimentEpsilon {
         println("Time cost of loading data:  " + ((t2-t1)*1e-9).toString + "  seconds.")
         
         // estimate the kernel parameter (if it is unknown)
-        val sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
+        var sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
+        sigma = math.sqrt(sigma)
         println("Estimated sigma is " + sigma.toString)
         
         /*
