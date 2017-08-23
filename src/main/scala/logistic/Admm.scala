@@ -50,10 +50,9 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
      * @return objValArray the objective values in each iteration
      * @return timeArray the elapsed times counted at each iteration
      */
-    def train(gamma: Double, maxIter: Int, q: Int, learningRate: Double): (Array[Double], Array[Double], Array[Double]) = {
+    def train(gamma: Double, maxIter: Int, q: Int, learningRate: Double, rho: Double = 0.1): (Array[Double], Array[Double], Array[Double]) = {
         this.gamma = gamma
-        val rho: Double = 0.1 * gamma
-        this.rho = rho
+        this.rho = rho * gamma
         
         // setup the executors for training
         val rddTrain: RDD[Executor] = this.rdd

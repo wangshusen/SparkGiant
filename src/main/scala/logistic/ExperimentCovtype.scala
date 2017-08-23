@@ -176,9 +176,11 @@ object ExperimentCovtype {
         
         var learningrate = 1.0
         
+        var rho = 0.1
         var maxIterOuter = 40
-        var maxIterInner = 30                                                                                                                  
-        var results: (Array[Double], Array[Double], Array[Double]) = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
+        var maxIterInner = 30
+        
+        var results: (Array[Double], Array[Double], Array[Double]) = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
         println("\n ")
         println("====================================================================")
         println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
@@ -191,8 +193,9 @@ object ExperimentCovtype {
         println("\n ")
         
         maxIterOuter = 20
-        maxIterInner = 100                                                                                                                  
-        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
+        maxIterInner = 100
+        
+        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
         println("\n ")
         println("====================================================================")
         println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
@@ -205,8 +208,108 @@ object ExperimentCovtype {
         println("\n ")
         
         maxIterOuter = 10
-        maxIterInner = 300                                                                                                                  
-        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
+        maxIterInner = 300                                                                                                      
+        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
+        println("\n ")
+        println("====================================================================")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = admm.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        
+        
+        rho = 1.0
+        maxIterOuter = 40
+        maxIterInner = 30
+        
+        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
+        println("\n ")
+        println("====================================================================")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = admm.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        
+        maxIterOuter = 20
+        maxIterInner = 100
+        
+        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
+        println("\n ")
+        println("====================================================================")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = admm.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        
+        maxIterOuter = 10
+        maxIterInner = 300
+        
+        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
+        println("\n ")
+        println("====================================================================")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = admm.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        
+        
+        rho = 10.0
+        maxIterOuter = 40
+        maxIterInner = 30
+        
+        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
+        println("\n ")
+        println("====================================================================")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = admm.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        
+        maxIterOuter = 20
+        maxIterInner = 100
+        
+        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
+        println("\n ")
+        println("====================================================================")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = admm.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        
+        maxIterOuter = 10
+        maxIterInner = 300
+        
+        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
         println("\n ")
         println("====================================================================")
         println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
