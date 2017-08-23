@@ -45,14 +45,14 @@ object ExperimentEpsilon {
         dataTest = dataTest.persist()
         dataTest.count
         
-        /*
+        
         var gamma: Double = 1E-4
         //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
         //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         //this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
-        */
+        
         
         spark.stop()
     }
@@ -368,7 +368,7 @@ object ExperimentEpsilon {
         //sigma = math.sqrt(sigma)
         //println("Estimated sigma is " + sigma.toString)
         
-        /*
+        
         // map input data to random Fourier features
         val sigmaEpsilon: Double = 1.3
         dataTrain = dataTrain.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaEpsilon)).persist
@@ -387,7 +387,7 @@ object ExperimentEpsilon {
         println(sc.getExecutorMemoryStatus.toString())
         println("####################################")
         println(" ")
-        */
+        
         (dataTrain, dataTest)
     }
 }
