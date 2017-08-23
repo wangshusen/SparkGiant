@@ -362,14 +362,15 @@ object ExperimentEpsilon {
         val t2 = System.nanoTime()
         println("Time cost of loading data:  " + ((t2-t1)*1e-9).toString + "  seconds.")
         
+        
         // estimate the kernel parameter (if it is unknown)
-        var sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
-        sigma = math.sqrt(sigma)
-        println("Estimated sigma is " + sigma.toString)
+        //var sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
+        //sigma = math.sqrt(sigma)
+        //println("Estimated sigma is " + sigma.toString)
         
         /*
         // map input data to random Fourier features
-        val sigmaEpsilon: Double = 3.2
+        val sigmaEpsilon: Double = 1.3
         dataTrain = dataTrain.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaEpsilon)).persist
         dataTest = dataTest.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaEpsilon)).persist
         println("There are " + dataTrain.count.toString + " training samples.")

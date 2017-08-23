@@ -421,7 +421,7 @@ object ExperimentMnist {
         
         /*
         // map input data to random Fourier features
-        val sigmaMnist: Double = 43.24
+        val sigmaMnist: Double = 9.2
         dataTrain = dataTrain.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaMnist)).persist
         dataTest = dataTest.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaMnist)).persist
         println("There are " + dataTrain.count.toString + " training samples.")

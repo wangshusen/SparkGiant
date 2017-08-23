@@ -22,7 +22,7 @@ import breeze.numerics._
  */
 class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boolean = false, isModelAvg: Boolean = false)
         extends distopt.logistic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
-    val isMute: Boolean = false
+    val isMute: Boolean = true
             
     // initialize executors
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
