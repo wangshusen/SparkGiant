@@ -458,9 +458,9 @@ object ExperimentCovtype {
         println("Time cost of loading data:  " + ((t2-t1)*1e-9).toString + "  seconds.")
         
         // estimate the kernel parameter (if it is unknown)
-        var sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
-        sigma = math.sqrt(sigma)
-        println("Estimated sigma is " + sigma.toString)
+        //var sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
+        //sigma = math.sqrt(sigma)
+        //println("Estimated sigma is " + sigma.toString)
         
         /*
         // map input data to random Fourier features
