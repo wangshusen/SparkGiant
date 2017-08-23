@@ -85,7 +85,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
             objValArray(t) = this.objVal
             if (!this.isMute) println("Iteration " + t.toString + ":\t objective value is " + this.objVal.toString + ",\t time: " + timeArray(t).toString)
             
-            if (this.gNorm < this.gNormTol) {
+            if (this.gNorm < this.gNormTol || timeArray(t) > this.timeOut) {
                 return (trainErrorArray.slice(0, t+1), 
                         objValArray.slice(0, t+1), 
                         timeArray.slice(0, t+1))

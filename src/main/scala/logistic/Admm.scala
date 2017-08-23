@@ -93,6 +93,12 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
             trainErrorArray(t) = this.trainError
             objValArray(t) = this.objVal
             if (!this.isMute) println("Iteration " + t.toString + ":\t objective value is " + this.objVal.toString + ",\t time: " + timeArray(t).toString)
+            
+            if (timeArray(t) > this.timeOut) {
+                return (trainErrorArray.slice(0, t+1), 
+                        objValArray.slice(0, t+1), 
+                        timeArray.slice(0, t+1))
+            }
         }
         
         for (j <- 0 until this.d) this.w(j) = this.u(j)

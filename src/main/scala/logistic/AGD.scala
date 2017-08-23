@@ -80,6 +80,12 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
             objValArray(t) = this.objVal
             
             if (!this.isMute) println("Iteration " + t.toString + ":\t objective value is " + this.objVal.toString + ",\t time: " + timeArray(t).toString)
+            
+            if (this.gNorm < this.gNormTol || timeArray(t) > this.timeOut) {
+                return (trainErrorArray.slice(0, t+1), 
+                        objValArray.slice(0, t+1), 
+                        timeArray.slice(0, t+1))
+            }
         }
         
         (trainErrorArray, objValArray, timeArray)
@@ -105,8 +111,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
                     .reduce((a, b) => ((a._1,b._1).zipped.map(_ + _), a._2+b._2, a._3+b._3))
         this.g = tmp._1.map(_ * this.nInv)
         
-        //val gNorm: Double = g.map(a => a*a).sum
-        //println("Driver: squared norm of gradient is " + gNorm.toString)
+        this.gNorm = g.map(a => a*a).sum
+        //println("Driver: squared norm of gradient is " + this.gNorm.toString)
         
         // update the training error and objective value
         this.trainError = tmp._2 * this.nInv

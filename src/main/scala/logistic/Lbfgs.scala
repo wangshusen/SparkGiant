@@ -87,7 +87,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isModelAvg: B
             trainErrorArray(t) = this.trainError
             objValArray(t) = this.objVal
             
-            if (this.gNorm < this.gNormTol) {
+            if (this.gNorm < this.gNormTol || timeArray(t) > this.timeOut) {
                 return (trainErrorArray.slice(0, t+1), 
                         objValArray.slice(0, t+1), 
                         timeArray.slice(0, t+1))

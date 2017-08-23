@@ -58,12 +58,12 @@ object ExperimentMnist {
         
         
         // test logistic regression solvers
-        //var gamma: Double = 1E-6
-        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        //this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
-        //this.trainTestAgd(gamma, sc, dataTrain, dataTest)
-        //this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+        var gamma: Double = 1E-6
+        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        this.trainTestDane(gamma, sc, dataTrain, dataTest)
+        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        this.trainTestAgd(gamma, sc, dataTrain, dataTest)
+        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
         /**/
         
@@ -92,7 +92,6 @@ object ExperimentMnist {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        /*
         maxIterOuter = 60
         maxIterInner = 100
         
@@ -109,6 +108,7 @@ object ExperimentMnist {
         println("\n ")
         
         
+        /*
         maxIterOuter = 30
         maxIterInner = 300
         
@@ -419,7 +419,7 @@ object ExperimentMnist {
         println("Estimated sigma is " + sigma.toString)
         
         
-        /*
+        
         // map input data to random Fourier features
         val sigmaMnist: Double = 9.2
         dataTrain = dataTrain.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaMnist)).persist
@@ -437,7 +437,7 @@ object ExperimentMnist {
         println(sc.getExecutorMemoryStatus.toString())
         println("####################################")
         println(" ")
-        */
+        
         
         (dataTrain, dataTest)
     }
