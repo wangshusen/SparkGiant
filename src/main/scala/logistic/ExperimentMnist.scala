@@ -59,11 +59,11 @@ object ExperimentMnist {
         
         // test logistic regression solvers
         var gamma: Double = 1E-6
-        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        //this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        this.trainTestDane(gamma, sc, dataTrain, dataTest)
+        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
-        //this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
         /**/
         
@@ -131,7 +131,7 @@ object ExperimentMnist {
         val isSearch = true
         val dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
         
-        var learningrate = 10.0
+        var learningrate = 0.1
         
         var maxIterOuter = 40
         var maxIterInner = 30
@@ -188,7 +188,7 @@ object ExperimentMnist {
         val admm: Admm.Driver = new Admm.Driver(sc, dataTrain)
         
         
-        var learningrate = 10.0
+        var learningrate = 0.1
         
         var maxIterOuter = 40
         var maxIterInner = 30                                                                                                                  
@@ -247,7 +247,7 @@ object ExperimentMnist {
         
         
         learningrate = 0.1
-        momentum = 0.99
+        momentum = 0.95
         
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
@@ -262,39 +262,7 @@ object ExperimentMnist {
         println("\n ")
 
         
-        learningrate = 1.0
-        momentum = 0.99
-        
-        results = agd.train(gamma, maxIterOuter, learningrate, momentum)
-        println("\n ")
-        println("====================================================================")
-        println("Accelerated Gradient Descent (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString+ ", LearningRate=" + learningrate.toString + ", momentum=" + momentum.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = agd.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-
-        
-        learningrate = 10.0
-        momentum = 0.99
-        
-        results = agd.train(gamma, maxIterOuter, learningrate, momentum)
-        println("\n ")
-        println("====================================================================")
-        println("Accelerated Gradient Descent (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString+ ", LearningRate=" + learningrate.toString + ", momentum=" + momentum.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = agd.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        
-        learningrate = 100.0
+        learningrate = 0.1
         momentum = 0.99
         
         results = agd.train(gamma, maxIterOuter, learningrate, momentum)
@@ -415,9 +383,9 @@ object ExperimentMnist {
         
         
         // estimate the kernel parameter (if it is unknown)
-        var sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
-        sigma = math.sqrt(sigma)
-        println("Estimated sigma is " + sigma.toString)
+        //var sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
+        //sigma = math.sqrt(sigma)
+        //println("Estimated sigma is " + sigma.toString)
         
         
         
