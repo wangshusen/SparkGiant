@@ -59,7 +59,7 @@ object ExperimentMnist {
         
         // test logistic regression solvers
         var gamma: Double = 1E-6
-        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
         this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
@@ -75,7 +75,6 @@ object ExperimentMnist {
     def trainTestGiant(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val isSearch: Boolean = true
         val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
-        
         
         var maxIterOuter: Int = 100
         var maxIterInner: Int = 30
@@ -131,7 +130,7 @@ object ExperimentMnist {
         val isSearch = true
         val dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
         
-        var learningrate = 0.1
+        var learningrate = 1.0
         
         var maxIterOuter = 40
         var maxIterInner = 30
@@ -165,6 +164,7 @@ object ExperimentMnist {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        
         maxIterOuter = 10
         maxIterInner = 300
         
@@ -188,14 +188,16 @@ object ExperimentMnist {
         val admm: Admm.Driver = new Admm.Driver(sc, dataTrain)
         
         
-        var learningrate = 0.1
+        var learningrate = 1.0
+        
+        var rho = 0.1
         
         var maxIterOuter = 40
         var maxIterInner = 30                                                                                                                  
-        var results: (Array[Double], Array[Double], Array[Double]) = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
+        var results: (Array[Double], Array[Double], Array[Double]) = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
         println("\n ")
         println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
@@ -206,10 +208,10 @@ object ExperimentMnist {
         
         maxIterOuter = 20
         maxIterInner = 100                                                                                                                  
-        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
+        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
         println("\n ")
         println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
@@ -221,10 +223,10 @@ object ExperimentMnist {
         
         maxIterOuter = 10
         maxIterInner = 300                                                                                                                  
-        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate)
+        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
         println("\n ")
         println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
@@ -245,10 +247,6 @@ object ExperimentMnist {
         var learningrate = 1.0
         var momentum = 0.95
         
-        
-        learningrate = 0.1
-        momentum = 0.95
-        
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
         println("====================================================================")
@@ -261,8 +259,6 @@ object ExperimentMnist {
         println("Test error is " + testError.toString)
         println("\n ")
 
-        
-        learningrate = 0.1
         momentum = 0.99
         
         results = agd.train(gamma, maxIterOuter, learningrate, momentum)
