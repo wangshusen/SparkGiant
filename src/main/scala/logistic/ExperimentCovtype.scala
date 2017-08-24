@@ -82,6 +82,22 @@ object ExperimentCovtype {
         
         
         maxIterOuter = 60
+        maxIterInner = 60
+        
+        results = giant.train(gamma, maxIterOuter, maxIterInner)
+        println("\n ")
+        println("====================================================================")
+        println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = giant.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        
+        maxIterOuter = 60
         maxIterInner = 100
         
         results = giant.train(gamma, maxIterOuter, maxIterInner)
@@ -183,7 +199,7 @@ object ExperimentCovtype {
         var results: (Array[Double], Array[Double], Array[Double]) = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
         println("\n ")
         println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
@@ -198,7 +214,7 @@ object ExperimentCovtype {
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
         println("\n ")
         println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
@@ -212,7 +228,7 @@ object ExperimentCovtype {
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
         println("\n ")
         println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
@@ -230,7 +246,7 @@ object ExperimentCovtype {
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
         println("\n ")
         println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
@@ -246,7 +262,7 @@ object ExperimentCovtype {
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
         println("\n ")
         println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
@@ -262,7 +278,7 @@ object ExperimentCovtype {
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
         println("\n ")
         println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
@@ -280,7 +296,7 @@ object ExperimentCovtype {
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
         println("\n ")
         println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
@@ -296,7 +312,7 @@ object ExperimentCovtype {
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
         println("\n ")
         println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
@@ -312,7 +328,7 @@ object ExperimentCovtype {
         results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
         println("\n ")
         println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
