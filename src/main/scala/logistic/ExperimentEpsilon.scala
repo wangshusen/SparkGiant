@@ -368,10 +368,10 @@ object ExperimentEpsilon {
         // load training and test data
         val isCoalesce: Boolean = false
         var dataTrain: RDD[(Double, Array[Double])] = Utils.loadLibsvmData(spark, filename1, numSplits, isCoalesce)
-                                                        .map(pair => (pair._1.toDouble * 2 - 3, pair._2))
+                                                        .map(pair => (pair._1.toDouble, pair._2))
                                                         .persist()
         var dataTest: RDD[(Double, Array[Double])] = Utils.loadLibsvmData(spark, filename2)
-                                                        .map(pair => (pair._1.toDouble * 2 - 3, pair._2))
+                                                        .map(pair => (pair._1.toDouble, pair._2))
                                                         .persist()
         println("There are " + dataTrain.count.toString + " training samples.")
         println("There are " + dataTest.count.toString + " test samples.")

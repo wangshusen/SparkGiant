@@ -5,8 +5,8 @@
 #SBATCH -t 02:00:00
 #SBATCH -J giant_logistic
 #SBATCH -L SCRATCH
-#SBATCH -e giant_job_%j.err
-#SBATCH -o giant_job_%j.out
+#SBATCH -e giant_epsilon_job_%j.err
+#SBATCH -o giant_epsilon_job_%j.out
 
 PROJ_HOME="$SCRATCH/SparkGiant"
 JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"

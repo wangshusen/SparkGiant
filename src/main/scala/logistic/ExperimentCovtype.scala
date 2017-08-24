@@ -30,7 +30,7 @@ object ExperimentCovtype {
         var t0 = System.nanoTime()
         val spark = (SparkSession
                       .builder()
-                      .appName("Distributed Algorithms for Logistic Regression")
+                      .appName("Distributed Algorithms for Logistic Regression -- Covtype")
                       .config("spark.some.config.option", "some-value")
                       .getOrCreate())
         val sc = spark.sparkContext
@@ -47,7 +47,7 @@ object ExperimentCovtype {
         
         
         
-        var gamma: Double = 1E-8
+        var gamma: Double = 1E-4
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
         this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
@@ -76,22 +76,6 @@ object ExperimentCovtype {
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         var testError: Double = giant.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        
-        maxIterOuter = 60
-        maxIterInner = 60
-        
-        results = giant.train(gamma, maxIterOuter, maxIterInner)
-        println("\n ")
-        println("====================================================================")
-        println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = giant.predict(dataTest)
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
@@ -136,7 +120,7 @@ object ExperimentCovtype {
         val dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
         
         
-        var learningrate = 1.0
+        var learningrate = 10.0
         
         var maxIterOuter = 40
         var maxIterInner = 30
@@ -190,7 +174,7 @@ object ExperimentCovtype {
         val admm: Admm.Driver = new Admm.Driver(sc, dataTrain)
         
         
-        var learningrate = 1.0
+        var learningrate = 10.0
         
         var rho = 0.1
         var maxIterOuter = 40
@@ -345,7 +329,7 @@ object ExperimentCovtype {
         
         var maxIterOuter = 3000
         
-        var learningrate = 1.0
+        var learningrate = 10.0
         var momentum = 0.9
         
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
@@ -466,7 +450,7 @@ object ExperimentCovtype {
         //sigma = math.sqrt(sigma)
         //println("Estimated sigma is " + sigma.toString)
         
-        /*
+        
         // map input data to random Fourier features
         val sigmaCovtype: Double = 1.9
         dataTrain = dataTrain.mapPartitions(Kernel.rbfRfm(_, numFeatures, sigmaCovtype)).persist
@@ -485,7 +469,7 @@ object ExperimentCovtype {
         println(sc.getExecutorMemoryStatus.toString())
         println("####################################")
         println(" ")
-        */
+        /**/
         (dataTrain, dataTest)
     }
 }
