@@ -46,7 +46,7 @@ object ExperimentEpsilon {
         dataTest.count
         
         
-        var gamma: Double = 1E-4
+        var gamma: Double = 1E-6
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
         this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
@@ -357,6 +357,21 @@ object ExperimentEpsilon {
         
         
         momentum = 0.99
+        
+        results = agd.train(gamma, maxIterOuter, learningrate, momentum)
+        println("\n ")
+        println("====================================================================")
+        println("Accelerated Gradient Descent (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString+ ", LearningRate=" + learningrate.toString + ", momentum=" + momentum.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = agd.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        
+        momentum = 0.999
         
         results = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
