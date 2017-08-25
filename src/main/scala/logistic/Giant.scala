@@ -53,8 +53,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
                                                  exe.setIsFormHessian(isFormHessian);
                                                  exe})
                                     .persist()
-        println("Driver: executors are setup for training! gamma = " + gamma.toString + ", q = " + q.toString + ", isFormHessian = " + isFormHessian.toString)
         rddTrain.count
+        println("Driver: executors are setup for training! gamma = " + gamma.toString + ", q = " + q.toString + ", isFormHessian = " + isFormHessian.toString)
         val t0: Double = System.nanoTime()
         
         // initialize w by model averaging
@@ -140,7 +140,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
             for (j <- 0 until this.d) pg += this.p(j) * this.g(j)
             eta = this.lineSearch(objVals, -0.01 * pg)
             //println("Eta = " + eta.toString)
-        } 
+        }
         
         // take approximate Newton step
         for (j <- 0 until this.d) w(j) -= eta * this.p(j)
