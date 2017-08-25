@@ -58,10 +58,10 @@ object ExperimentMnist {
         
         
         // test logistic regression solvers
-        var gamma: Double = 1E-6
-        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        var gamma: Double = 1E-4
+        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
@@ -235,6 +235,53 @@ object ExperimentMnist {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        
+        
+        rho = 1.0
+        
+        maxIterOuter = 40
+        maxIterInner = 30                                                                                                                  
+        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
+        println("\n ")
+        println("====================================================================")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = admm.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        maxIterOuter = 20
+        maxIterInner = 100                                                                                                                  
+        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
+        println("\n ")
+        println("====================================================================")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = admm.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
+        
+        maxIterOuter = 10
+        maxIterInner = 300                                                                                                                  
+        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
+        println("\n ")
+        println("====================================================================")
+        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = admm.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+        
     }
     
     
@@ -245,7 +292,7 @@ object ExperimentMnist {
         var maxIterOuter = 500
         
         var learningrate = 10.0
-        var momentum = 0.95
+        var momentum = 0.9
         
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
@@ -255,6 +302,20 @@ object ExperimentMnist {
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         var testError: Double = agd.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
+
+        momentum = 0.95
+        
+        results = agd.train(gamma, maxIterOuter, learningrate, momentum)
+        println("\n ")
+        println("====================================================================")
+        println("Accelerated Gradient Descent (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString+ ", LearningRate=" + learningrate.toString + ", momentum=" + momentum.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = agd.predict(dataTest)
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
@@ -281,7 +342,7 @@ object ExperimentMnist {
         
         var maxIterOuter: Int = 500
         
-        var numHistory: Int = 300
+        var numHistory: Int = 30
         
         var results: (Array[Double], Array[Double], Array[Double]) = lbfgs.train(gamma, maxIterOuter, numHistory)
         println("\n ")
@@ -294,7 +355,7 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        /*
+        
         numHistory = 100
         
         results = lbfgs.train(gamma, maxIterOuter, numHistory)
@@ -323,7 +384,7 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        */
+        
     }
     
     
