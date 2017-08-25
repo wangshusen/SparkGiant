@@ -61,7 +61,7 @@ object ExperimentMnist {
         var gamma: Double = 1E-6
         //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
@@ -130,7 +130,7 @@ object ExperimentMnist {
         val isSearch = true
         val dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
         
-        var learningrate = 1.0
+        var learningrate = 10.0
         
         var maxIterOuter = 40
         var maxIterInner = 30
@@ -188,7 +188,7 @@ object ExperimentMnist {
         val admm: Admm.Driver = new Admm.Driver(sc, dataTrain)
         
         
-        var learningrate = 1.0
+        var learningrate = 10.0
         
         var rho = 0.1
         
@@ -244,7 +244,7 @@ object ExperimentMnist {
         
         var maxIterOuter = 500
         
-        var learningrate = 1.0
+        var learningrate = 10.0
         var momentum = 0.95
         
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
@@ -281,7 +281,7 @@ object ExperimentMnist {
         
         var maxIterOuter: Int = 500
         
-        var numHistory: Int = 30
+        var numHistory: Int = 300
         
         var results: (Array[Double], Array[Double], Array[Double]) = lbfgs.train(gamma, maxIterOuter, numHistory)
         println("\n ")
@@ -294,7 +294,7 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        /*
         numHistory = 100
         
         results = lbfgs.train(gamma, maxIterOuter, numHistory)
@@ -323,7 +323,7 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        */
     }
     
     
