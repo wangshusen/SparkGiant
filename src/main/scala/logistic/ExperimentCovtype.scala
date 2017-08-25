@@ -330,7 +330,7 @@ object ExperimentCovtype {
         var maxIterOuter = 3000
         
         var learningrate = 10.0
-        var momentum = 0.9
+        var momentum = 0.95
         
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
@@ -345,7 +345,7 @@ object ExperimentCovtype {
         println("\n ")
         
         
-        momentum = 0.95
+        momentum = 0.99
         
         results = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
@@ -360,7 +360,7 @@ object ExperimentCovtype {
         println("\n ")
         
         
-        momentum = 0.99
+        momentum = 0.999
         
         results = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
