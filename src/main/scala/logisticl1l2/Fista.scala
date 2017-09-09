@@ -79,7 +79,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])]) extends disto
             
             if (!this.isMute) println("Iteration " + t.toString + ":\t objective value is " + this.objVal.toString + ",\t time: " + timeArray(t).toString)
             
-            if (timeArray(t) > this.timeOut) {
+            if (timeArray(t) > this.timeOut || this.objVal > 1E10) {
                 return (trainErrorArray.slice(0, t+1), 
                         objValArray.slice(0, t+1), 
                         timeArray.slice(0, t+1))

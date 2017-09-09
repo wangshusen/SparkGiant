@@ -39,7 +39,7 @@ class Driver(sc: SparkContext, n0: Long, d0: Int, m0: Long) {
     
     var gamma1: Double = 0.0
     var gamma2: Double = 0.0
-    var timeOut: Double = 1000.0
+    var timeOut: Double = 3000.0
     var w: Array[Double] = new Array[Double](this.d)
     var trainError: Double = 0.0
     var objVal: Double = 0.0

@@ -111,7 +111,6 @@ class Executor(var arr: Array[(Double, Array[Double])]) {
     val d: Int = arr(0)._2.size
     val x: DenseMatrix[Double] = new DenseMatrix(d, s, arr.map(pair => pair._2.map(a => pair._1 * a)).flatten)
     val y: Array[Double] = arr.map(pair => pair._1)
-    val a: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, s)
     val sDouble: Double = s.toDouble
     val sInv: Double = 1.0 / sDouble
     

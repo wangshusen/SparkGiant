@@ -57,18 +57,17 @@ object ExperimentCovtype {
     
     
     def trainTestFista(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
-        val isSearch: Boolean = true
         val fista: Fista.Driver = new Fista.Driver(sc, dataTrain)
-        val gamma2: Double = 1E-8
+        val gamma2: Double = 1E-6
         
-        var maxIterOuter: Int = 300
+        var maxIterOuter: Int = 3000
         
-        var lipchitz: Double = 10.0
+        var lipchitz: Double = 100
         
         var results: (Array[Double], Array[Double], Array[Double]) = fista.train(gamma, gamma2, maxIterOuter, lipchitz)
         println("\n ")
         println("====================================================================")
-        println("Fista (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", lipchitz=" + lipchitz.toString + ")")
+        println("Fista (gamma1=" + gamma.toString + ", gamma2=" + gamma2.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", lipchitz=" + lipchitz.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
@@ -77,13 +76,13 @@ object ExperimentCovtype {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        
+        /*
         lipchitz = 1.0
         
         results = fista.train(gamma, gamma2, maxIterOuter, lipchitz)
         println("\n ")
         println("====================================================================")
-        println("Fista (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", lipchitz=" + lipchitz.toString + ")")
+        println("Fista (gamma1=" + gamma.toString + ", gamma2=" + gamma2.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", lipchitz=" + lipchitz.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
@@ -91,24 +90,23 @@ object ExperimentCovtype {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        */
     }
     
     
     def trainTestGiant(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
-        val isSearch: Boolean = true
         val giant: Giant.Driver = new Giant.Driver(sc, dataTrain)
-        val gamma2: Double = 1E-8
+        val gamma2: Double = 1E-6
         
         var maxIterOuter: Int = 30
-        var maxIterInner: Int = 300
+        var maxIterInner: Int = 10
         
-        var lipchitz: Double = 1.0
+        var lipchitz: Double = 0.1
         
         var results: (Array[Double], Array[Double], Array[Double]) = giant.train(gamma, gamma2, maxIterOuter, maxIterInner, lipchitz)
         println("\n ")
         println("====================================================================")
-        println("Giant (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", lipchitz=" + lipchitz.toString + ")")
+        println("Giant (gamma1=" + gamma.toString + ", gamma2=" + gamma2.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", lipchitz=" + lipchitz.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
@@ -117,12 +115,13 @@ object ExperimentCovtype {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        lipchitz = 10.0
+        /*
+        lipchitz = 1.0
         
         results = giant.train(gamma, gamma2, maxIterOuter, maxIterInner, lipchitz)
         println("\n ")
         println("====================================================================")
-        println("Giant (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", lipchitz=" + lipchitz.toString + ")")
+        println("Giant (gamma1=" + gamma.toString + ", gamma2=" + gamma2.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", lipchitz=" + lipchitz.toString + ")")
         println("\n ")
         println("Objective Value\t Training Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
@@ -130,6 +129,7 @@ object ExperimentCovtype {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
+        */
     }
     
     def printAsTable(element1: Double, element2: Double, element3: Double): Unit = {

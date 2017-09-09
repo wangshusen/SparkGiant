@@ -49,10 +49,10 @@ object ExperimentCovtype {
         
         var gamma: Double = 1E-8
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
-        this.trainTestAgd(gamma, sc, dataTrain, dataTest)
-        this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+        //this.trainTestDane(gamma, sc, dataTrain, dataTest)
+        //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        //this.trainTestAgd(gamma, sc, dataTrain, dataTest)
+        //this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
         
         spark.stop()
@@ -65,8 +65,8 @@ object ExperimentCovtype {
         val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
         
         
-        var maxIterOuter: Int = 120
-        var maxIterInner: Int = 30
+        var maxIterOuter: Int = 30
+        var maxIterInner: Int = 10
         
         var results: (Array[Double], Array[Double], Array[Double]) = giant.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")
@@ -80,9 +80,9 @@ object ExperimentCovtype {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        
-        maxIterOuter = 60
-        maxIterInner = 100
+        /*
+        maxIterOuter = 30
+        maxIterInner = 200
         
         results = giant.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")
@@ -111,7 +111,7 @@ object ExperimentCovtype {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        */
     }
     
     

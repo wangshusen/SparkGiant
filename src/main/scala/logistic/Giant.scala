@@ -22,7 +22,7 @@ import breeze.numerics._
  */
 class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boolean = false, isModelAvg: Boolean = false)
         extends distopt.logistic.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
-    val isMute: Boolean = true
+    val isMute: Boolean = false
             
     // initialize executors
     val rdd: RDD[Executor] = data.glom.map(new Executor(_)).persist()
@@ -107,19 +107,10 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
      * @return
      */
     def update(rddTrain: RDD[Executor]): Unit ={
-        // compute full gradient
+        // compute full gradient, objective value, and training error
         val wBc: Broadcast[Array[Double]] = this.sc.broadcast(this.w)
-        var tmp: (Array[Double], Double, Double) = rddTrain.map(exe => exe.grad(wBc.value))
-                    .reduce((a, b) => ((a._1,b._1).zipped.map(_ + _), a._2+b._2, a._3+b._3))
-        this.g = tmp._1.map(_ * this.nInv)
+        this.updateGradient(rddTrain, wBc)
         val gBc: Broadcast[Array[Double]] = this.sc.broadcast(this.g)
-        
-        this.gNorm = g.map(a => a*a).sum
-        //println("Driver: squared norm of gradient is " + this.gNorm.toString)
-        
-        // update the training error and objective value
-        this.trainError = tmp._2 * this.nInv
-        this.objVal = tmp._3 * this.nInv
 
         // compute the averaged Newton direction
         this.p = rddTrain.map(exe => exe.newton(wBc.value, gBc.value))
@@ -146,6 +137,22 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
         for (j <- 0 until this.d) w(j) -= eta * this.p(j)
     }
     
+            
+    /**
+     * Update the gradient, objective value, and training error.
+     */
+    def updateGradient(rddTrain: RDD[Executor], wBc: Broadcast[Array[Double]]): Unit ={
+        // compute full gradient
+        var tmp: (Array[Double], Double, Double) = rddTrain.map(exe => exe.grad(wBc.value))
+                    .reduce((a, b) => ((a._1,b._1).zipped.map(_ + _), a._2+b._2, a._3+b._3))
+        this.g = tmp._1.map(_ * this.nInv)
+        this.gNorm = g.map(a => a*a).sum
+        //println("Driver: squared norm of gradient is " + this.gNorm.toString)
+        
+        // update the training error and objective value
+        this.trainError = tmp._2 * this.nInv
+        this.objVal = tmp._3 * this.nInv
+    }
 }
 
 
@@ -156,6 +163,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], isSearch: Boo
  */
 class Executor(arr: Array[(Double, Array[Double])]) extends 
         distopt.logistic.Common.Executor(arr) {
+    val a: DenseMatrix[Double] = DenseMatrix.zeros[Double](d, s)
     val cg: distopt.utils.CG = new distopt.utils.CG(this.d)
     
     var isFormHessian: Boolean = false
@@ -180,13 +188,25 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
             this.a(::, j) := ddiag(j) * this.x(::, j)
         }
         
-        if (this.isFormHessian) {
-            val aa: DenseMatrix[Double] = this.a * this.a.t
-            p = cg.solver2(aa, this.sDouble * g, this.sDouble * this.gamma, this.q)
+        val isCg: Boolean = false
+        
+        if (isCg) { // use conjugate gradient
+            if (this.isFormHessian) {
+                val aa: DenseMatrix[Double] = this.a * this.a.t
+                p = cg.solver2(aa, this.sDouble * g, this.sDouble * this.gamma, this.q)
+            }
+            else {
+                p = cg.solver1(this.a, this.sDouble * g, this.sDouble * this.gamma, this.q)
+            }
         }
-        else {
-            p = cg.solver1(this.a, this.sDouble * g, this.sDouble * this.gamma, this.q)
+        else { // use accelerated proximal SDCA
+            val y: DenseVector[Double] = DenseVector.zeros[Double](this.s)
+            val v: DenseVector[Double] = a * (a.t * w) * (1.0 / this.sDouble) + this.gamma * w - g
+            val u: DenseVector[Double] = distopt.utils.SdcaL1L2.acceSdcaQuadratic(a, y, v / this.gamma, this.gamma, 0, this.q, w)
+            p = (w - u).toArray
+                
         }
+        
         p.map((a: Double) => a * this.sDouble)
     }
         

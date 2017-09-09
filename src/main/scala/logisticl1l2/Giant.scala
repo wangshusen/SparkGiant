@@ -22,7 +22,7 @@ import scala.math
  * @param data RDD of (label, feature)
  */
 class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])]) extends distopt.logisticl1l2.Common.Driver(sc, data.count, data.take(1)(0)._2.size, data.getNumPartitions) {
-    val isMute: Boolean = true
+    val isMute: Boolean = false
     val nInv: Double = 1.0 / n.toDouble
     var g: Array[Double] = new Array[Double](this.d)
             
@@ -46,18 +46,14 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])]) extends disto
         this.gamma1 = gamma1
         this.gamma2 = gamma2
         
-        var isFormHessian: Boolean = false
-        val s: Int = (this.n / this.m).toInt
-        if (this.d * (s + maxIterInner) < 2 * s * maxIterInner) isFormHessian = true
-        
         // setup the executors for training
         val rddTrain: RDD[Executor] = this.rdd
                                     .map(exe => {exe.setGamma(gamma1, gamma2);
-                                                 exe.setParams(lipchitz, maxIterInner, isFormHessian);
+                                                 exe.setParams(lipchitz, maxIterInner);
                                                  exe})
                                     .persist()
         rddTrain.count
-        println("Prox-GIANT: gamma1 = " + gamma1.toString + ", gamma2 = " + gamma2.toString + ", maxIterInner = " + maxIterInner.toString + ", lipchitz=" + lipchitz.toString + ", isFormHessian = " + isFormHessian.toString)
+        println("Prox-GIANT: gamma1 = " + gamma1.toString + ", gamma2 = " + gamma2.toString + ", maxIterInner = " + maxIterInner.toString + ", lipchitz=" + lipchitz.toString)
         val t0: Double = System.nanoTime()
         
         // initialization
@@ -80,7 +76,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])]) extends disto
             
             if (!this.isMute) println("Iteration " + t.toString + ":\t objective value is " + this.objVal.toString + ",\t time: " + timeArray(t).toString)
             
-            if (timeArray(t) > this.timeOut) {
+            if (timeArray(t) > this.timeOut || this.objVal > 1E10) {
                 return (trainErrorArray.slice(0, t+1), 
                         objValArray.slice(0, t+1), 
                         timeArray.slice(0, t+1))
@@ -154,7 +150,7 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])]) extends disto
         //for (j <- 0 until this.d) pg += p(j) * this.g(j)
         //val eta: Double = this.lineSearch(objVals, -0.01 * pg)
         val eta: Double = this.lineSearch(objVals, 0)
-        //println("Eta = " + eta.toString)
+        println("Eta = " + eta.toString)
         eta
     }
 }
@@ -171,137 +167,40 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
             
     var lipchitz: Double = 1.0
     var maxIter: Int = 100
-    var isFormHessian: Boolean = false
-    def setParams(l0: Double, m0: Int, i0: Boolean): Unit = {
+    def setParams(l0: Double, m0: Int): Unit = {
         this.lipchitz = l0
         this.maxIter = m0
-        this.isFormHessian = i0
     }
-            
-            
-    
-    /** 
-     * The proximal operator: prox_{lambda * ||.||_1} (a)
-     */
-    def l1shrinkage(a: Double, lambda: Double): Double = {
-        if (a > lambda) return (a - lambda)
-        else {
-            if (a > -lambda) return 0
-            else return (a + lambda)
-        }
-    }
-    
+      
     /**
-     * Solve the local problem of proximal Newton.
+     * Minimize the model w.r.t. p:
+     *      g'*p + 0.5*p'*H*p + gamma1*||w+p||_1, 
+     *      where H = A * A' / s + gamma2*Identity.
+     *
+     * @param wArray the current iteration
+     * @param gArray the gradient of l(w) = logis(w) + 0.5*gamma2*||w||_2^2 at w
+     * @return -p
      */
     def proxNewton(wArray: Array[Double], gArray: Array[Double]): Array[Double] = {
         val g: DenseVector[Double] = new DenseVector(gArray)
         val w: DenseVector[Double] = new DenseVector(wArray)
+        
+        // compute Hessian matrix
         val zexp: Array[Double] = (this.x.t * w).toArray.map((a: Double) => math.exp(a))
         val ddiag: Array[Double] = zexp.map((r: Double) => (math.sqrt(r) / (1.0 + r)))
-                                    .map(a => a / math.sqrt(this.sDouble))
-        
         val a: DenseMatrix[Double] = new DenseMatrix[Double](this.d, this.s)
         for (j <- 0 until this.s) {
             a(::, j) := ddiag(j) * this.x(::, j)
         }
         
-        if (this.isFormHessian) {
-            val h: DenseMatrix[Double] = a * a.t
-            for (j <- 0 until this.d) h(j, j) = h(j, j) + this.gamma2
-            val p: DenseVector[Double] = this.fista1(w, g, h)
-            return p.toArray.map((a: Double) => a * this.s)
-        }
-        else {
-            val p: DenseVector[Double] = this.fista2(w, g, a)
-            return p.toArray.map((a: Double) => a * this.s)
-        }
+        // solve the sub-problem by accelerated proximal SDCA
+        val y: DenseVector[Double] = DenseVector.zeros[Double](this.s)
+        val v: DenseVector[Double] = a * (a.t * w) * (1.0 / this.s.toDouble) + this.gamma2 * w - g
+        val u: DenseVector[Double] = distopt.utils.SdcaL1L2.acceSdcaQuadratic(a, y, v / this.gamma2, this.gamma2, this.gamma1 / this.gamma2, this.maxIter, w)
         
-        
+        (w - u).toArray.map((b: Double) => b * this.s)
     }
-            
-    /**
-     * Minimize the model w.r.t. p:
-     *      g'*p + 0.5*p'*H*p + gamma1*||w+p||_1.
-     * Let u = w + p. 
-     * It is equivalent to minimize l(u) + r(u), where
-     *      l(u) = g'*u + 0.5*u'*H*u - w'*H*u,
-     *      r(u) = gamma1*||u||_1.
-     *
-     * @param w the current iteration
-     * @param g the gradient of l(w) = logis(w) + 0.5*gamma2*||w||_2^2 at w
-     * @param h the Hessian matrix of l(w) at w
-     * @return -p = w - u
-     */
-    def fista1(w: DenseVector[Double], g: DenseVector[Double], h: DenseMatrix[Double]): DenseVector[Double] = {
-        val u: DenseVector[Double] = w.copy
-        val p: DenseVector[Double] = u.copy
-        val uOld: DenseVector[Double] = u.copy
-        val lipchitzInv: Double = 1.0 / this.lipchitz
-        val lambda: Double = this.gamma1 / this.lipchitz
-        var momentum: Double = 1.0
-        var momentumOld: Double = momentum
-        
-        for (t <- 0 until this.maxIter) {
-            uOld := u
-            momentumOld = momentum
-            
-            // gradient of loss function, l(p)
-            val grad: DenseVector[Double] = g + h * (p - w)
-
-            // update u and p
-            val z: DenseVector[Double] = p - lipchitzInv * grad
-            for (j <- 0 until this.d) u(j) = this.l1shrinkage(z(j), lambda)
-            momentum = (1 + math.sqrt(1 + 4 * momentumOld * momentumOld)) / 2
-            val scaling: Double = (momentumOld - 1) / momentum
-            p := (1 + scaling) * u - scaling * uOld
-        }
-        
-        w - u
-    }
-            
-    /**
-     * Minimize the model w.r.t. p:
-     *      g'*p + 0.5*p'*H*p + gamma1*||w+p||_1, where
-     *      H = A * A' + gamma2*Identity.
-     * Let u = w + p. 
-     * It is equivalent to minimize l(u) + r(u), where
-     *      l(u) = g'*u + 0.5*u'*H*u - w'*H*u,
-     *      r(u) = gamma1*||u||_1.
-     *
-     * @param w the current iteration
-     * @param g the gradient of l(w) = logis(w) + 0.5*gamma2*||w||_2^2 at w
-     * @param a the matrix such that H = A * A' + gamma2*Identity
-     * @return -p = w - u
-     */
-    def fista2(w: DenseVector[Double], g: DenseVector[Double], a: DenseMatrix[Double]): DenseVector[Double] = {
-        val u: DenseVector[Double] = w.copy
-        val p: DenseVector[Double] = u.copy
-        val uOld: DenseVector[Double] = u.copy
-        val pw: DenseVector[Double] = DenseVector.zeros(this.d)
-        val lipchitzInv: Double = 1.0 / this.lipchitz
-        val lambda: Double = this.gamma1 / this.lipchitz
-        var momentum: Double = 1.0
-        var momentumOld: Double = momentum
-        
-        for (t <- 0 until this.maxIter) {
-            uOld := u
-            momentumOld = momentum
-            
-            // gradient of loss function, l(p)
-            pw := p - w
-            val grad: DenseVector[Double] = g + a * (a.t * pw) + this.gamma2 * pw
-
-            // update u and p
-            val z: DenseVector[Double] = p - lipchitzInv * grad
-            for (j <- 0 until this.d) u(j) = this.l1shrinkage(z(j), lambda)
-            momentum = (1 + math.sqrt(1 + 4 * momentumOld * momentumOld)) / 2
-            val scaling: Double = (momentumOld - 1) / momentum
-            p := (1 + scaling) * u - scaling * uOld
-        }
-        
-        w - u
-    }
+    
 }
 
 
