@@ -46,10 +46,10 @@ object ExperimentEpsilon {
         dataTest.count
         
         
-        var gamma: Double = 1E-8
+        var gamma: Double = 1E-6
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
@@ -79,7 +79,7 @@ object ExperimentEpsilon {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        
+        /*
         maxIterOuter = 60
         maxIterInner = 100
         
@@ -126,7 +126,7 @@ object ExperimentEpsilon {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        */
     }
     
     
@@ -137,8 +137,8 @@ object ExperimentEpsilon {
         
         var learningrate = 10.0
         
-        var maxIterOuter = 40
-        var maxIterInner = 30
+        var maxIterOuter = 10
+        var maxIterInner = 300
         
         var results: (Array[Double], Array[Double], Array[Double]) = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
@@ -152,6 +152,7 @@ object ExperimentEpsilon {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        /*
         maxIterOuter = 20
         maxIterInner = 100
         
@@ -181,7 +182,7 @@ object ExperimentEpsilon {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        */
     }
     
 
@@ -341,7 +342,7 @@ object ExperimentEpsilon {
         var maxIterOuter = 3000
         
         var learningrate = 10.0
-        var momentum = 0.95
+        var momentum = 0.99
         
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
@@ -355,7 +356,7 @@ object ExperimentEpsilon {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        
+        /*
         momentum = 0.99
         
         results = agd.train(gamma, maxIterOuter, learningrate, momentum)
@@ -384,7 +385,7 @@ object ExperimentEpsilon {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        */
     }
     
     
@@ -394,7 +395,7 @@ object ExperimentEpsilon {
         
         var maxIterOuter: Int = 500
         
-        var numHistory: Int = 100
+        var numHistory: Int = 300
         
         var results: (Array[Double], Array[Double], Array[Double]) = lbfgs.train(gamma, maxIterOuter, numHistory)
         println("\n ")
@@ -408,7 +409,7 @@ object ExperimentEpsilon {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        
+        /*
         numHistory = 300
         
         results = lbfgs.train(gamma, maxIterOuter, numHistory)
@@ -422,7 +423,7 @@ object ExperimentEpsilon {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        /*
     }
     
     
