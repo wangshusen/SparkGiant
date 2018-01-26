@@ -37,7 +37,7 @@ class Driver(sc: SparkContext, n0: Long, d0: Int, m0: Long) {
     val m: Long = m0
     val nInv: Double = 1.0 / n.toDouble
     val gNormTol: Double = 1E-22 * d.toDouble
-    val timeOut: Double = 3000
+    val timeOut: Double = 100
     
     // variables
     var w: Array[Double] = new Array[Double](d)
