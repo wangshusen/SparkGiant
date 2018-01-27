@@ -58,9 +58,9 @@ object ExperimentMnist {
         
         
         // test logistic regression solvers
-        var gamma: Double = 1E-8
-        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        //this.trainTestDane(gamma, sc, dataTrain, dataTest)
+        var gamma: Double = 1E-6
+        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        this.trainTestDane(gamma, sc, dataTrain, dataTest)
         //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
@@ -76,8 +76,8 @@ object ExperimentMnist {
         val isSearch: Boolean = true
         val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
         
-        var maxIterOuter: Int = 100
-        var maxIterInner: Int = 30
+        var maxIterOuter: Int = 30
+        var maxIterInner: Int = 300
         
         var results: (Array[Double], Array[Double], Array[Double]) = giant.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")
@@ -90,7 +90,7 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        /*
         maxIterOuter = 60
         maxIterInner = 100
         
@@ -122,7 +122,7 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        */
     }
     
     
@@ -132,8 +132,8 @@ object ExperimentMnist {
         
         var learningrate = 10.0
         
-        var maxIterOuter = 40
-        var maxIterInner = 30
+        var maxIterOuter = 10
+        var maxIterInner = 300
         
         var results: (Array[Double], Array[Double], Array[Double]) = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
@@ -148,7 +148,7 @@ object ExperimentMnist {
         println("\n ")
         
         
-        
+        /*
         maxIterOuter = 20
         maxIterInner = 100
         
@@ -179,7 +179,7 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        /**/
+        */
     }
     
 
@@ -306,6 +306,7 @@ object ExperimentMnist {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        /*
         momentum = 0.99
         
         results = agd.train(gamma, maxIterOuter, learningrate, momentum)
@@ -333,7 +334,7 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        */
     }
     
     
@@ -343,7 +344,7 @@ object ExperimentMnist {
         
         var maxIterOuter: Int = 500
         
-        var numHistory: Int = 30
+        var numHistory: Int = 300
         
         var results: (Array[Double], Array[Double], Array[Double]) = lbfgs.train(gamma, maxIterOuter, numHistory)
         println("\n ")
@@ -356,7 +357,7 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        /*
         numHistory = 100
         
         results = lbfgs.train(gamma, maxIterOuter, numHistory)
@@ -385,7 +386,7 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        
+        */
     }
     
     
