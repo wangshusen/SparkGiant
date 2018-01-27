@@ -61,8 +61,8 @@ object ExperimentEpsilon {
     
     def trainTestGiant(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val isSearch: Boolean = true
-        val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
-        
+        //val giant: Giant.Driver = new Giant.Driver(sc, dataTrain, isSearch)
+        val giant: GiantTest.Driver = new GiantTest.Driver(sc, dataTrain, dataTest, isSearch)
         
         var maxIterOuter: Int = 120
         var maxIterInner: Int = 30
@@ -72,7 +72,7 @@ object ExperimentEpsilon {
         println("====================================================================")
         println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
         println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
+        println("Objective Value\t Test Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         var testError: Double = giant.predict(dataTest)
         println("\n ")
@@ -88,39 +88,7 @@ object ExperimentEpsilon {
         println("====================================================================")
         println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
         println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = giant.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        
-        maxIterOuter = 30
-        maxIterInner = 300
-        
-        results = giant.train(gamma, maxIterOuter, maxIterInner)
-        println("\n ")
-        println("====================================================================")
-        println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = giant.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        
-        maxIterOuter = 15
-        maxIterInner = 900
-        
-        results = giant.train(gamma, maxIterOuter, maxIterInner)
-        println("\n ")
-        println("====================================================================")
-        println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
+        println("Objective Value\t Test Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         testError = giant.predict(dataTest)
         println("\n ")
@@ -132,7 +100,8 @@ object ExperimentEpsilon {
     
     def trainTestDane(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
         val isSearch = true
-        val dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
+        //val dane: Dane.Driver = new Dane.Driver(sc, dataTrain, isSearch)
+        val dane: DaneTest.Driver = new DaneTest.Driver(sc, dataTrain, dataTest, isSearch)
         
         
         var learningrate = 10.0
@@ -145,7 +114,7 @@ object ExperimentEpsilon {
         println("====================================================================")
         println("DANE (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
         println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
+        println("Objective Value\t Test Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         var testError: Double = dane.predict(dataTest)
         println("\n ")
@@ -161,22 +130,7 @@ object ExperimentEpsilon {
         println("====================================================================")
         println("DANE (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
         println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = dane.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        maxIterOuter = 10
-        maxIterInner = 300
-        
-        results = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
-        println("\n ")
-        println("====================================================================")
-        println("DANE (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
+        println("Objective Value\t Test Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         testError = dane.predict(dataTest)
         println("\n ")
@@ -185,159 +139,9 @@ object ExperimentEpsilon {
         */
     }
     
-
-    
-    def trainTestAdmm(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
-        val admm: Admm.Driver = new Admm.Driver(sc, dataTrain)
-        
-        var learningrate = 10.0
-        
-        var rho = 0.1
-        
-        var maxIterOuter = 40
-        var maxIterInner = 30
-        
-        var results: (Array[Double], Array[Double], Array[Double]) = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
-        println("\n ")
-        println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        var testError: Double = admm.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        maxIterOuter = 20
-        maxIterInner = 100                                                                                                                  
-        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
-        println("\n ")
-        println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = admm.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        
-        maxIterOuter = 10
-        maxIterInner = 300                                                                                                                  
-        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
-        println("\n ")
-        println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = admm.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        
-        rho = 1.0
-        
-        maxIterOuter = 40
-        maxIterInner = 30                                                                                                                  
-        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
-        println("\n ")
-        println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = admm.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        maxIterOuter = 20
-        maxIterInner = 100                                                                                                                  
-        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
-        println("\n ")
-        println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = admm.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        
-        maxIterOuter = 10
-        maxIterInner = 300                                                                                                                  
-        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
-        println("\n ")
-        println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = admm.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        
-        
-        rho = 10.0
-        
-        maxIterOuter = 40
-        maxIterInner = 30                                                                                                                  
-        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
-        println("\n ")
-        println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = admm.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        maxIterOuter = 20
-        maxIterInner = 100                                                                                                                  
-        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
-        println("\n ")
-        println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = admm.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        
-        maxIterOuter = 10
-        maxIterInner = 300                                                                                                                  
-        results = admm.train(gamma, maxIterOuter, maxIterInner, learningrate, rho)
-        println("\n ")
-        println("====================================================================")
-        println("ADMM (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ", LearningRate=" + learningrate.toString + ", rho=" + rho.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = admm.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
-        
-        
-    }
-    
-    
-    
     def trainTestAgd(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
-        val agd: Agd.Driver = new Agd.Driver(sc, dataTrain)
+        //val agd: Agd.Driver = new Agd.Driver(sc, dataTrain)
+        val agd: AgdTest.Driver = new AgdTest.Driver(sc, dataTrain, dataTest)
         
         var maxIterOuter = 3000
         
@@ -349,7 +153,7 @@ object ExperimentEpsilon {
         println("====================================================================")
         println("Accelerated Gradient Descent (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString+ ", LearningRate=" + learningrate.toString + ", momentum=" + momentum.toString + ")")
         println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
+        println("Objective Value\t Test Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         var testError: Double = agd.predict(dataTest)
         println("\n ")
@@ -364,34 +168,21 @@ object ExperimentEpsilon {
         println("====================================================================")
         println("Accelerated Gradient Descent (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString+ ", LearningRate=" + learningrate.toString + ", momentum=" + momentum.toString + ")")
         println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
+        println("Objective Value\t Test Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         testError = agd.predict(dataTest)
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
         
-        
-        momentum = 0.999
-        
-        results = agd.train(gamma, maxIterOuter, learningrate, momentum)
-        println("\n ")
-        println("====================================================================")
-        println("Accelerated Gradient Descent (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString+ ", LearningRate=" + learningrate.toString + ", momentum=" + momentum.toString + ")")
-        println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
-        results.zipped.foreach(this.printAsTable)
-        testError = agd.predict(dataTest)
-        println("\n ")
-        println("Test error is " + testError.toString)
-        println("\n ")
         */
     }
     
     
     
     def trainTestLbfgs(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
-        val lbfgs: Lbfgs.Driver = new Lbfgs.Driver(sc, dataTrain)
+        //val lbfgs: Lbfgs.Driver = new Lbfgs.Driver(sc, dataTrain)
+        val lbfgs: LbfgsTest.Driver = new LbfgsTest.Driver(sc, dataTrain, dataTest)
         
         var maxIterOuter: Int = 500
         
@@ -402,7 +193,7 @@ object ExperimentEpsilon {
         println("====================================================================")
         println("L-BFGS (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", numHistory=" + numHistory.toString + ")")
         println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
+        println("Objective Value\t Test Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         var testError: Double = lbfgs.predict(dataTest)
         println("\n ")
@@ -417,7 +208,7 @@ object ExperimentEpsilon {
         println("====================================================================")
         println("L-BFGS (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", numHistory=" + numHistory.toString + ")")
         println("\n ")
-        println("Objective Value\t Training Error\t Elapsed Time")
+        println("Objective Value\t Test Error\t Elapsed Time")
         results.zipped.foreach(this.printAsTable)
         testError = lbfgs.predict(dataTest)
         println("\n ")
