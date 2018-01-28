@@ -13,7 +13,7 @@ JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 DATA_FILE1="$PROJ_HOME/data/epsilon_normalized"
 DATA_FILE2="$PROJ_HOME/data/epsilon_normalized.t"
 
-NUM_SPLITS="89"
+NUM_SPLITS="59"
 NUM_FEATURES="10000"
 
 module load spark
