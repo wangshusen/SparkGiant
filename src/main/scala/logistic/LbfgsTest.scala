@@ -87,8 +87,8 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], dataTest: RDD
             var testError: Double = this.predict(dataTest)
             var t3: Double = System.nanoTime()
             timetest += t3 - t2
-            t1 = System.nanoTime()
             wBc = this.update(wBc, rddTrain)
+            t1 = System.nanoTime()
             trainErrorArray(t) = testError //this.trainError
             objValArray(t) = this.objVal
             

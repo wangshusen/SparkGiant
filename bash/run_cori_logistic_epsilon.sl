@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -p regular
-#SBATCH -N 15
+#SBATCH -N 10
 #SBATCH -C haswell
 #SBATCH -t 3:00:00
 #SBATCH -J giant_logistic
