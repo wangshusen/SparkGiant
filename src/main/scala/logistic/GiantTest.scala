@@ -80,11 +80,11 @@ class Driver(sc: SparkContext, data: RDD[(Double, Array[Double])], dataTest: RDD
         
         for (t <- 0 until maxIter) {
             timeArray(t) = (t1 - t0 - timetest) * 1.0E-9
-            this.update(rddTrain)
             var t2: Double = System.nanoTime()
             var testError: Double = this.predict(dataTest)
             var t3: Double = System.nanoTime()
             timetest += t3 - t2
+            this.update(rddTrain)
             t1 = System.nanoTime()
             trainErrorArray(t) = testError
             objValArray(t) = this.objVal

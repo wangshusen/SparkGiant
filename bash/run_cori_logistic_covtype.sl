@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -p regular
-#SBATCH -N 10
+#SBATCH -N 15
 #SBATCH -C haswell
-#SBATCH -t 2:00:00
+#SBATCH -t 3:00:00
 #SBATCH -J giant_logistic
 #SBATCH -L SCRATCH
 #SBATCH -e giant_covtype_job_%j.err
@@ -13,7 +13,7 @@ JAR_FILE="$PROJ_HOME/target/scala-2.11/giant_2.11-1.0.jar"
 DATA_FILE1="$PROJ_HOME/data/covtype_train"
 DATA_FILE2="$PROJ_HOME/data/covtype_test"
 
-NUM_SPLITS="59"
+NUM_SPLITS="89"
 NUM_FEATURES="10000"
 
 module load spark
