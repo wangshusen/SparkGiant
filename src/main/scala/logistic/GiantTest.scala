@@ -193,7 +193,7 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
             this.a(::, j) := ddiag(j) * this.x(::, j)
         }
         
-        val isCg: Boolean = false
+        val isCg: Boolean = true
         
         if (isCg) { // use conjugate gradient
             if (this.isFormHessian) {
