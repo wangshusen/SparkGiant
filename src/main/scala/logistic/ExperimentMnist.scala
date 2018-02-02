@@ -45,8 +45,8 @@ object ExperimentMnist {
         
         
         // partition data to train and test
-        //val inputFileName: String = "./data/mnist"
-        //partitionTrainTest(sc, inputFileName, numSplits)
+        val inputFileName: String = "./data/mnist"
+        partitionTrainTest(sc, inputFileName, numSplits)
         
         
         // load data
@@ -283,9 +283,9 @@ object ExperimentMnist {
         
         
         // estimate the kernel parameter (if it is unknown)
-        //var sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
-        //sigma = math.sqrt(sigma)
-        //println("Estimated sigma is " + sigma.toString)
+        var sigma: Double = dataTrain.glom.map(Kernel.estimateSigma).mean
+        sigma = math.sqrt(sigma)
+        println("Estimated sigma is " + sigma.toString)
         
         
         
