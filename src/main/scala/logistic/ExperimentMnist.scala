@@ -91,9 +91,12 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        /*
-        maxIterOuter = 60
-        maxIterInner = 100
+        
+        
+        
+        
+        maxIterOuter = 300
+        maxIterInner = 30
         
         results = giant.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")
@@ -106,7 +109,7 @@ object ExperimentMnist {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        */
+        /**/
     }
     
     
@@ -158,7 +161,7 @@ object ExperimentMnist {
         //val agd: Agd.Driver = new Agd.Driver(sc, dataTrain)
         val agd: AgdTest.Driver = new AgdTest.Driver(sc, dataTrain, dataTest)
         
-        var maxIterOuter = 500
+        var maxIterOuter = 2000
         
         var learningrate = 10.0
         var momentum = 0.95
@@ -198,7 +201,7 @@ object ExperimentMnist {
         //val lbfgs: Lbfgs.Driver = new Lbfgs.Driver(sc, dataTrain)
         val lbfgs: LbfgsTest.Driver = new LbfgsTest.Driver(sc, dataTrain, dataTest)
         
-        var maxIterOuter: Int = 500
+        var maxIterOuter: Int = 1000
         
         var numHistory: Int = 300
         
