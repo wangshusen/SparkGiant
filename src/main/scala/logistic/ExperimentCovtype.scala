@@ -47,7 +47,7 @@ object ExperimentCovtype {
         
         
         
-        var gamma: Double = 1E-6
+        var gamma: Double = 1E-8
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
         //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
@@ -67,7 +67,7 @@ object ExperimentCovtype {
         
         
         var maxIterOuter: Int = 120
-        var maxIterInner: Int = 30
+        var maxIterInner: Int = 100
         
         var results: (Array[Double], Array[Double], Array[Double]) = giant.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")
@@ -81,9 +81,9 @@ object ExperimentCovtype {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        /*
-        maxIterOuter = 30
-        maxIterInner = 200
+        
+        maxIterOuter = 120
+        maxIterInner = 30
         
         results = giant.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")
@@ -96,7 +96,7 @@ object ExperimentCovtype {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        */
+        
     }
     
     
@@ -147,7 +147,7 @@ object ExperimentCovtype {
         var maxIterOuter = 3000
         
         var learningrate = 10.0
-        var momentum = 0.99
+        var momentum = 0.999
         
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")

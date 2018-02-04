@@ -193,24 +193,13 @@ class Executor(arr: Array[(Double, Array[Double])]) extends
             this.a(::, j) := ddiag(j) * this.x(::, j)
         }
         
-        val isCg: Boolean = true
-        
-        if (isCg) { // use conjugate gradient
-            if (this.isFormHessian) {
-                val aa: DenseMatrix[Double] = this.a * this.a.t
-                p = cg.solver2(aa, this.sDouble * g, this.sDouble * this.gamma, this.q)
-            }
-            else {
-                p = cg.solver1(this.a, this.sDouble * g, this.sDouble * this.gamma, this.q)
-            }
-        }
-        else { // use accelerated proximal SDCA
-            val y: DenseVector[Double] = DenseVector.zeros[Double](this.s)
-            val v: DenseVector[Double] = a * (a.t * w) * (1.0 / this.sDouble) + this.gamma * w - g
-            val u: DenseVector[Double] = distopt.utils.SdcaL1L2.acceSdcaQuadratic(a, y, v / this.gamma, this.gamma, 0, this.q, w)
-            p = (w - u).toArray
-                
-        }
+        //if (this.isFormHessian) {
+        //    val aa: DenseMatrix[Double] = this.a * this.a.t
+        //    p = cg.solver2(aa, this.sDouble * g, this.sDouble * this.gamma, this.q)
+        //}
+        //else {
+        p = cg.solver1(this.a, this.sDouble * g, this.sDouble * this.gamma, this.q)
+        //}
         
         p.map((a: Double) => a * this.sDouble)
     }

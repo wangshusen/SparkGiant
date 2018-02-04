@@ -46,7 +46,7 @@ object ExperimentEpsilon {
         dataTest.count
         
         
-        var gamma: Double = 1E-8
+        var gamma: Double = 1E-4
         this.trainTestGiant(gamma, sc, dataTrain, dataTest)
         this.trainTestDane(gamma, sc, dataTrain, dataTest)
         //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
@@ -106,8 +106,8 @@ object ExperimentEpsilon {
         
         var learningrate = 10.0
         
-        var maxIterOuter = 10
-        var maxIterInner = 300
+        var maxIterOuter = 60
+        var maxIterInner = 30
         
         var results: (Array[Double], Array[Double], Array[Double]) = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
@@ -146,7 +146,7 @@ object ExperimentEpsilon {
         var maxIterOuter = 3000
         
         var learningrate = 10.0
-        var momentum = 0.99
+        var momentum = 0.95
         
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
