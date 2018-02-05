@@ -47,9 +47,9 @@ object ExperimentCovtype {
         
         
         
-        var gamma: Double = 1E-4
-        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        this.trainTestDane(gamma, sc, dataTrain, dataTest)
+        var gamma: Double = 1E-8
+        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        //this.trainTestDane(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
@@ -146,7 +146,7 @@ object ExperimentCovtype {
         var maxIterOuter = 3000
         
         var learningrate = 10.0
-        var momentum = 0.95
+        var momentum = 0.999
         
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
