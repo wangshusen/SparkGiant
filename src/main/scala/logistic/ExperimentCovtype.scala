@@ -47,9 +47,9 @@ object ExperimentCovtype {
         
         
         
-        var gamma: Double = 1E-8
-        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        //this.trainTestDane(gamma, sc, dataTrain, dataTest)
+        var gamma: Double = 1E-4
+        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        this.trainTestDane(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
@@ -106,8 +106,8 @@ object ExperimentCovtype {
         
         var learningrate = 10.0
         
-        var maxIterOuter = 10
-        var maxIterInner = 300
+        var maxIterOuter = 60
+        var maxIterInner = 30
         
         var results: (Array[Double], Array[Double], Array[Double]) = dane.train(gamma, maxIterOuter, maxIterInner, learningrate)
         println("\n ")
@@ -121,7 +121,7 @@ object ExperimentCovtype {
         println("Test error is " + testError.toString)
         println("\n ")
         
-        /*
+        
         maxIterOuter = 20
         maxIterInner = 100
         
@@ -136,7 +136,7 @@ object ExperimentCovtype {
         println("\n ")
         println("Test error is " + testError.toString)
         println("\n ")
-        */
+        
     }
     
     def trainTestAgd(gamma: Double, sc: SparkContext, dataTrain: RDD[(Double, Array[Double])], dataTest: RDD[(Double, Array[Double])]): Unit = {
@@ -146,7 +146,7 @@ object ExperimentCovtype {
         var maxIterOuter = 3000
         
         var learningrate = 10.0
-        var momentum = 0.999
+        var momentum = 0.95
         
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
