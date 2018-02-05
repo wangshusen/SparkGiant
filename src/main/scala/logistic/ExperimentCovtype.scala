@@ -48,9 +48,8 @@ object ExperimentCovtype {
         
         
         var gamma: Double = 1E-8
-        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        //this.trainTestAdmm(gamma, sc, dataTrain, dataTest)
+        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        //this.trainTestDane(gamma, sc, dataTrain, dataTest)
         this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
         
