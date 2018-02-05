@@ -47,11 +47,11 @@ object ExperimentCovtype {
         
         
         
-        var gamma: Double = 1E-8
-        //this.trainTestGiant(gamma, sc, dataTrain, dataTest)
-        //this.trainTestDane(gamma, sc, dataTrain, dataTest)
-        this.trainTestAgd(gamma, sc, dataTrain, dataTest)
+        var gamma: Double = 1E-6
+        this.trainTestGiant(gamma, sc, dataTrain, dataTest)
+        this.trainTestDane(gamma, sc, dataTrain, dataTest)
         this.trainTestLbfgs(gamma, sc, dataTrain, dataTest)
+        this.trainTestAgd(gamma, sc, dataTrain, dataTest)
         
         
         spark.stop()
@@ -66,7 +66,7 @@ object ExperimentCovtype {
         
         
         var maxIterOuter: Int = 120
-        var maxIterInner: Int = 100
+        var maxIterInner: Int = 30
         
         var results: (Array[Double], Array[Double], Array[Double]) = giant.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")
@@ -81,8 +81,8 @@ object ExperimentCovtype {
         println("\n ")
         
         
-        maxIterOuter = 120
-        maxIterInner = 30
+        maxIterOuter = 60
+        maxIterInner = 100
         
         results = giant.train(gamma, maxIterOuter, maxIterInner)
         println("\n ")
@@ -96,6 +96,22 @@ object ExperimentCovtype {
         println("Test error is " + testError.toString)
         println("\n ")
         
+        
+        
+        maxIterOuter = 30
+        maxIterInner = 300
+        
+        results = giant.train(gamma, maxIterOuter, maxIterInner)
+        println("\n ")
+        println("====================================================================")
+        println("GIANT (gamma=" + gamma.toString + ", MaxIterOuter=" + maxIterOuter.toString + ", MaxIterInner=" + maxIterInner.toString + ")")
+        println("\n ")
+        println("Objective Value\t Training Error\t Elapsed Time")
+        results.zipped.foreach(this.printAsTable)
+        testError = giant.predict(dataTest)
+        println("\n ")
+        println("Test error is " + testError.toString)
+        println("\n ")
     }
     
     
@@ -146,7 +162,7 @@ object ExperimentCovtype {
         var maxIterOuter = 3000
         
         var learningrate = 10.0
-        var momentum = 0.999
+        var momentum = 0.99
         
         var results: (Array[Double], Array[Double], Array[Double]) = agd.train(gamma, maxIterOuter, learningrate, momentum)
         println("\n ")
